@@ -155,8 +155,7 @@
                 {% for product in products %}
                 <li class="list-group-item">
                     <a href="{{ url_for('ui.product_detail', product_id=product.id) }}" class="product-item d-flex align-items-center text-decoration-none text-body">
-                        {% set image_pn = product.product_number.split(' ')[0] %}
-                        <img src="{{ IMAGE_URL_PREFIX }}{{ image_pn }}.jpg" alt="{{ product.product_name }}" class="item-image rounded border flex-shrink-0" onerror="this.style.visibility='hidden'">
+                        <img src="{{ get_image_url(product) }}" alt="{{ product.product_name }}" class="item-image rounded border flex-shrink-0" onerror="imgFallback(this)">
                         <div class="item-details flex-grow-1 ms-3">
                             <div class="product-name fw-bold">{{ product.product_name }}</div>
                             <div class="product-meta small text-muted">
@@ -229,5 +228,17 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha84-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script>
+        function imgFallback(img) {
+            const src = img.src;
+            if (src.includes('_DF_01.jpg')) {
+                img.src = src.replace('_DF_01.jpg', '_DM_01.jpg');
+            } else if (src.includes('_DM_01.jpg')) {
+                img.src = src.replace('_DM_01.jpg', '_DG_01.jpg');
+            } else {
+                img.style.visibility = 'hidden';
+            }
+        }
+    </script>
 </body>
 </html>

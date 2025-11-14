@@ -139,8 +139,7 @@ def import_excel_file(file, form, brand_id, progress_callback=None):
         settings_query = Setting.query.filter_by(brand_id=brand_id).all()
         brand_settings = {s.key: s.value for s in settings_query}
         
-        # [수정됨] 오타 수정: IMPORT_STRATEGESY -> IMPORT_STRATEGY
-        import_strategy = brand_settings.get('IMPORT_STRATEGY')
+        import_strategy = brand_settings.get('IMPORT_STRATEGESY')
         
         field_map = {
             'product_number': ('col_pn', True),

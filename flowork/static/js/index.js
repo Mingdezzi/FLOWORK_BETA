@@ -1,3 +1,14 @@
+function imgFallback(img) {
+    const src = img.src;
+    if (src.includes('_DF_01.jpg')) {
+        img.src = src.replace('_DF_01.jpg', '_DM_01.jpg');
+    } else if (src.includes('_DM_01.jpg')) {
+        img.src = src.replace('_DM_01.jpg', '_DG_01.jpg');
+    } else {
+        img.style.visibility = 'hidden';
+    }
+}
+
 (function() {
     function isMobile() {
         const ua = navigator.userAgent;
@@ -32,7 +43,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     
     const korKeyMap = {
         'ㅂ': 'ㅃ', 'ㅈ': 'ㅉ', 'ㄷ': 'ㄸ', 'ㄱ': 'ㄲ', 'ㅅ': 'ㅆ',
-        'ㅐ': 'de', 'ㅔ': 'ㅖ'
+        'ㅐ': 'ㅒ', 'ㅔ': 'ㅖ'
     };
     const korReverseKeyMap = {
         'ㅃ': 'ㅂ', 'ㅉ': 'ㅈ', 'ㄸ': 'ㄷ', 'ㄲ': 'ㄱ', 'ㅆ': 'ㅅ',
@@ -205,7 +216,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
             const productHtml = `
                 <li class="list-group-item">
                     <a href="/product/${product.product_id}" class="product-item d-flex align-items-center text-decoration-none text-body">
-                        <img src="${imageURLPrefix}${product.image_pn}.jpg" alt="${product.product_name}" class="item-image rounded border flex-shrink-0" onerror="this.style.visibility='hidden'">
+                        <img src="${imageURLPrefix}${product.image_pn}.jpg" alt="${product.product_name}" class="item-image rounded border flex-shrink-0" onerror="imgFallback(this)">
                         <div class="item-details flex-grow-1 ms-3">
                             <div class="product-name fw-bold">${product.product_name}</div>
                             <div class="product-meta small text-muted">
