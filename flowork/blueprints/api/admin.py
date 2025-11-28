@@ -2,7 +2,7 @@ import json
 import os
 import traceback
 from flask import request, jsonify, current_app, flash, redirect, url_for, abort
-from flask_login import login_required, current_user
+from flask_login import login_required, current_user, logout_user
 from sqlalchemy import func, exc
 
 from flowork.models import db, Brand, Store, Setting, User, Staff, Sale, StockHistory

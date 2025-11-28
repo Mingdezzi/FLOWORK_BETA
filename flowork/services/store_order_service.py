@@ -35,22 +35,22 @@ class StoreOrderService:
             if order.status != TransferStatus.REQUESTED: 
                 return {'status': 'error', 'message': '이미 처리된 주문입니다.'}
             
-            if status == 'APPROVED': # TransferStatus.RECEIVED (개념상 승인이므로 매핑 필요할 수도 있으나 여기선 APPROVED 사용)
+            if status == 'APPROVED':
                 if confirmed_qty <= 0: 
                     return {'status': 'error', 'message': '확정 수량 오류'}
                 
-                # 1. 본사 재고 차감
                 variant = db.session.get(Variant, order.variant_id)
+                if variant.hq_quantity < confirmed_qty:
+                     return {'status': 'error', 'message': f'본사 재고가 부족합니다. (현재: {variant.hq_quantity})'}
+
                 variant.hq_quantity -= confirmed_qty
                 
-                # 2. 매장 재고 증가
                 stock = StoreStock.query.filter_by(store_id=order.store_id, variant_id=order.variant_id).first()
                 if not stock:
                     stock = StoreStock(store_id=order.store_id, variant_id=order.variant_id, quantity=0)
                     db.session.add(stock)
                 stock.quantity += confirmed_qty
                 
-                # 3. 이력 (매장 기준 입고)
                 history = StockHistory(
                     store_id=order.store_id,
                     variant_id=order.variant_id,
@@ -106,8 +106,12 @@ class StoreOrderService:
             if status == 'APPROVED':
                 if confirmed_qty <= 0: return {'status': 'error', 'message': '수량 오류'}
                 
-                # 1. 매장 재고 차감
                 stock = StoreStock.query.filter_by(store_id=ret.store_id, variant_id=ret.variant_id).first()
+                
+                current_qty = stock.quantity if stock else 0
+                if current_qty < confirmed_qty:
+                    return {'status': 'error', 'message': f'매장 재고가 부족합니다. (현재: {current_qty})'}
+
                 if stock:
                     stock.quantity -= confirmed_qty
                     
@@ -121,7 +125,6 @@ class StoreOrderService:
                     )
                     db.session.add(history)
                 
-                # 2. 본사 재고 증가
                 variant = db.session.get(Variant, ret.variant_id)
                 variant.hq_quantity += confirmed_qty
                 
