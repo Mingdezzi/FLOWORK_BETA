@@ -1,7 +1,7 @@
 <div class="accordion accordion-flush" id="navAccordion">
     
     <div class="list-group list-group-flush border-bottom">
-        <a href="{{ url_for('ui.sales_register') }}" class="list-group-item list-group-item-action fw-bold {{ 'active' if active_page == 'sales' else '' }}" style="padding: 1rem 1.25rem;">
+        <a href="{{ url_for('ui.sales_register') }}" class="list-group-item list-group-item-action fw-bold spa-link {{ 'active' if active_page == 'sales' else '' }}" style="padding: 1rem 1.25rem;">
             <i class="bi bi-cart-check me-2 text-danger"></i> 판매등록 (POS)
         </a>
     </div>
@@ -15,8 +15,8 @@
         <div id="menu-sales-mgmt" class="accordion-collapse collapse {{ 'show' if active_page in ['sales_record', 'order'] else '' }}" data-bs-parent="#navAccordion">
             <div class="accordion-body p-0">
                 <div class="list-group list-group-flush">
-                    <a href="{{ url_for('ui.sales_record') }}" class="list-group-item list-group-item-action small ps-4 {{ 'active' if active_page == 'sales_record' else '' }}">판매내역</a>
-                    <a href="{{ url_for('ui.order_list') }}" class="list-group-item list-group-item-action small ps-4 {{ 'active' if active_page == 'order' else '' }}">고객주문</a>
+                    <a href="{{ url_for('ui.sales_record') }}" class="list-group-item list-group-item-action small ps-4 spa-link {{ 'active' if active_page == 'sales_record' else '' }}">판매내역</a>
+                    <a href="{{ url_for('ui.order_list') }}" class="list-group-item list-group-item-action small ps-4 spa-link {{ 'active' if active_page == 'order' else '' }}">고객주문</a>
                 </div>
             </div>
         </div>
@@ -31,8 +31,8 @@
         <div id="menu-order-return" class="accordion-collapse collapse {{ 'show' if active_page in ['store_orders', 'store_returns'] else '' }}" data-bs-parent="#navAccordion">
             <div class="accordion-body p-0">
                 <div class="list-group list-group-flush">
-                    <a href="{{ url_for('ui.store_order_list') }}" class="list-group-item list-group-item-action small ps-4 {{ 'active' if active_page == 'store_orders' else '' }}">주문등록</a>
-                    <a href="{{ url_for('ui.store_return_list') }}" class="list-group-item list-group-item-action small ps-4 {{ 'active' if active_page == 'store_returns' else '' }}">반품등록</a>
+                    <a href="{{ url_for('ui.store_order_list') }}" class="list-group-item list-group-item-action small ps-4 spa-link {{ 'active' if active_page == 'store_orders' else '' }}">주문등록</a>
+                    <a href="{{ url_for('ui.store_return_list') }}" class="list-group-item list-group-item-action small ps-4 spa-link {{ 'active' if active_page == 'store_returns' else '' }}">반품등록</a>
                 </div>
             </div>
         </div>
@@ -47,11 +47,11 @@
         <div id="menu-stock" class="accordion-collapse collapse {{ 'show' if active_page in ['search', 'list', 'check', 'stock_overview'] else '' }}" data-bs-parent="#navAccordion">
             <div class="accordion-body p-0">
                 <div class="list-group list-group-flush">
-                    <a href="{{ url_for('ui.search_page') }}" class="list-group-item list-group-item-action small ps-4 {{ 'active' if active_page == 'search' else '' }}">상품검색</a>
-                    <a href="{{ url_for('ui.list_page') }}" class="list-group-item list-group-item-action small ps-4 {{ 'active' if active_page == 'list' else '' }}">상세검색</a>
-                    <a href="{{ url_for('ui.check_page') }}" class="list-group-item list-group-item-action small ps-4 {{ 'active' if active_page == 'check' else '' }}">재고실사</a>
+                    <a href="{{ url_for('ui.search_page') }}" class="list-group-item list-group-item-action small ps-4 spa-link {{ 'active' if active_page == 'search' else '' }}">상품검색</a>
+                    <a href="{{ url_for('ui.list_page') }}" class="list-group-item list-group-item-action small ps-4 spa-link {{ 'active' if active_page == 'list' else '' }}">상세검색</a>
+                    <a href="{{ url_for('ui.check_page') }}" class="list-group-item list-group-item-action small ps-4 spa-link {{ 'active' if active_page == 'check' else '' }}">재고실사</a>
                     {% if not current_user.store_id %}
-                    <a href="{{ url_for('ui.stock_overview') }}" class="list-group-item list-group-item-action small ps-4 {{ 'active' if active_page == 'stock_overview' else '' }}">통합재고</a>
+                    <a href="{{ url_for('ui.stock_overview') }}" class="list-group-item list-group-item-action small ps-4 spa-link {{ 'active' if active_page == 'stock_overview' else '' }}">통합재고</a>
                     {% endif %}
                 </div>
             </div>
@@ -67,9 +67,9 @@
         <div id="menu-transfer" class="accordion-collapse collapse {{ 'show' if active_page in ['transfer_out', 'transfer_in', 'transfer_status'] else '' }}" data-bs-parent="#navAccordion">
             <div class="accordion-body p-0">
                 <div class="list-group list-group-flush">
-                    <a href="{{ url_for('ui.stock_transfer_out') }}" class="list-group-item list-group-item-action small ps-4 {{ 'active' if active_page == 'transfer_out' else '' }}">수평출고</a>
-                    <a href="{{ url_for('ui.stock_transfer_in') }}" class="list-group-item list-group-item-action small ps-4 {{ 'active' if active_page == 'transfer_in' else '' }}">수평입고</a>
-                    <a href="{{ url_for('ui.stock_transfer_status') }}" class="list-group-item list-group-item-action small ps-4 {{ 'active' if active_page == 'transfer_status' else '' }}">수평현황</a>
+                    <a href="{{ url_for('ui.stock_transfer_out') }}" class="list-group-item list-group-item-action small ps-4 spa-link {{ 'active' if active_page == 'transfer_out' else '' }}">수평출고</a>
+                    <a href="{{ url_for('ui.stock_transfer_in') }}" class="list-group-item list-group-item-action small ps-4 spa-link {{ 'active' if active_page == 'transfer_in' else '' }}">수평입고</a>
+                    <a href="{{ url_for('ui.stock_transfer_status') }}" class="list-group-item list-group-item-action small ps-4 spa-link {{ 'active' if active_page == 'transfer_status' else '' }}">수평현황</a>
                 </div>
             </div>
         </div>
@@ -84,8 +84,8 @@
         <div id="menu-settings" class="accordion-collapse collapse {{ 'show' if active_page in ['stock', 'setting'] else '' }}" data-bs-parent="#navAccordion">
             <div class="accordion-body p-0">
                 <div class="list-group list-group-flush">
-                    <a href="{{ url_for('ui.stock_management') }}" class="list-group-item list-group-item-action small ps-4 {{ 'active' if active_page == 'stock' else '' }}">재고설정</a>
-                    <a href="{{ url_for('ui.setting_page') }}" class="list-group-item list-group-item-action small ps-4 {{ 'active' if active_page == 'setting' else '' }}">일반설정</a>
+                    <a href="{{ url_for('ui.stock_management') }}" class="list-group-item list-group-item-action small ps-4 spa-link {{ 'active' if active_page == 'stock' else '' }}">재고설정</a>
+                    <a href="{{ url_for('ui.setting_page') }}" class="list-group-item list-group-item-action small ps-4 spa-link {{ 'active' if active_page == 'setting' else '' }}">일반설정</a>
                 </div>
             </div>
         </div>

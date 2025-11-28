@@ -1,8 +1,3 @@
-/**
- * Stock Management Logic
- * Refactored to use Class-based structure and Common Utilities
- */
-
 class StockApp {
     constructor() {
         this.dom = {
@@ -14,7 +9,6 @@ class StockApp {
     }
 
     init() {
-        // 1. 엑셀 분석기 초기화
         this.setupExcelAnalyzer({
             fileInputId: 'store_stock_excel_file',
             formId: 'form-update-store',
@@ -39,10 +33,8 @@ class StockApp {
             gridId: 'grid-import-db',
         });
 
-        // 2. 가로/세로 모드 스위치 초기화
         this.dom.horizontalSwitches.forEach(sw => {
             sw.addEventListener('change', (e) => this.toggleHorizontalMode(e.target));
-            // 초기 상태 반영
             this.toggleHorizontalMode(sw);
         });
     }
@@ -105,7 +97,6 @@ class StockApp {
             previews.forEach(pre => pre.innerHTML = '');
         };
 
-        // 파일 선택 이벤트
         fileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return resetUi();
@@ -120,13 +111,9 @@ class StockApp {
             formData.append('excel_file', file);
 
             try {
-                // [변경] fetch -> Flowork.api (FormData는 body에 직접 전달, Content-Type 헤더 자동생성 방지를 위해 옵션 조정 필요하지만, 
-                // Flowork.api는 JSON을 기본으로 하므로 여기서는 예외적으로 fetch 사용하거나, Flowork.api를 확장해야 함.
-                // 편의상 여기서는 직접 fetch를 사용하되 에러 핸들링 통일)
-                
                 const response = await fetch(this.dom.analyzeExcelUrl, {
                     method: 'POST',
-                    headers: { 'X-CSRFToken': Flowork.getCsrfToken() }, // Content-Type은 FormData가 자동 설정
+                    headers: { 'X-CSRFToken': Flowork.getCsrfToken() }, 
                     body: formData
                 });
                 const data = await response.json();
@@ -154,7 +141,6 @@ class StockApp {
             }
         });
 
-        // 열 선택 시 미리보기
         grid.addEventListener('change', (e) => {
             if (e.target.tagName !== 'SELECT') return;
             const letter = e.target.value;
@@ -170,7 +156,6 @@ class StockApp {
             }
         });
 
-        // 폼 제출 (업로드)
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!confirm('엑셀 파일 검증 및 업로드를 시작하시겠습니까?')) return;
@@ -183,7 +168,6 @@ class StockApp {
             }
 
             try {
-                // 1. 검증
                 const verifyResp = await fetch('/api/verify_excel', {
                     method: 'POST',
                     headers: { 'X-CSRFToken': Flowork.getCsrfToken() },
@@ -241,7 +225,6 @@ class StockApp {
         };
 
         const btnConfirm = document.getElementById('btn-confirm-upload');
-        // 기존 리스너 제거를 위해 cloneNode 사용
         const newBtn = btnConfirm.cloneNode(true);
         btnConfirm.parentNode.replaceChild(newBtn, btnConfirm);
         
@@ -310,4 +293,6 @@ class StockApp {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => new StockApp());
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('form-update-store')) new StockApp();
+});

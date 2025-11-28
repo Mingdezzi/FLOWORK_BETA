@@ -18,9 +18,11 @@
 </head>
 <body {% block body_attrs %}{% endblock %}>
 
+    <div class="spa-loader" id="spa-loader"><div class="bar"></div></div>
+
     <aside class="sidebar-desktop d-none d-lg-flex flex-column border-end bg-light h-100 position-fixed top-0 start-0" style="width: 260px; z-index: 1020;">
         <div class="p-3 border-bottom text-center bg-white">
-            <a href="{{ url_for('ui.home') }}" class="text-decoration-none">
+            <a href="{{ url_for('ui.home') }}" class="spa-link text-decoration-none">
                 <img src="{{ url_for('static', filename='logo.png') }}" alt="FLOWORK" style="height: 35px;">
             </a>
         </div>
@@ -56,25 +58,40 @@
     </div>
 
     <main class="main-content-wrapper">
-        <div class="d-lg-none mobile-top-header bg-white border-bottom py-2 px-3 sticky-top mb-3 d-flex justify-content-between align-items-center">
-            <a href="{{ url_for('ui.home') }}">
+        <div class="d-lg-none mobile-top-header bg-white border-bottom py-2 px-3 sticky-top mb-0 d-flex justify-content-between align-items-center" style="z-index: 1011;">
+            <a href="{{ url_for('ui.home') }}" class="spa-link">
                 <img src="{{ url_for('static', filename='symbol.png') }}" alt="Logo" style="height: 30px;">
                 <span class="fw-bold text-dark ms-2" style="font-size:1.1rem; vertical-align: middle;">FLOWORK</span>
             </a>
             <span class="text-primary fw-bold small">{{ today_date }}</span>
         </div>
 
-        <div class="container-fluid p-3 p-lg-4" style="max-width: 1600px;">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                    <div class="alert {{ 'alert-success' if category == 'success' else 'alert-danger' }} alert-dismissible fade show mb-4 shadow-sm" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
+        <div class="top-tab-scroll-container d-flex" id="top-tabs">
+            <a href="{{ url_for('ui.home') }}" class="top-tab-item spa-link {{ 'active' if active_page == 'home' else '' }}" data-page="home">홈</a>
+            <a href="{{ url_for('ui.sales_register') }}" class="top-tab-item spa-link {{ 'active' if active_page == 'sales' else '' }}" data-page="sales">판매등록</a>
+            <a href="{{ url_for('ui.sales_record') }}" class="top-tab-item spa-link {{ 'active' if active_page == 'sales_record' else '' }}" data-page="sales_record">판매내역</a>
+            <a href="{{ url_for('ui.order_list') }}" class="top-tab-item spa-link {{ 'active' if active_page == 'order' else '' }}" data-page="order">고객주문</a>
+            <a href="{{ url_for('ui.search_page') }}" class="top-tab-item spa-link {{ 'active' if active_page == 'search' else '' }}" data-page="search">상품검색</a>
+            <a href="{{ url_for('ui.check_page') }}" class="top-tab-item spa-link {{ 'active' if active_page == 'check' else '' }}" data-page="check">재고실사</a>
+            {% if not current_user.store_id %}
+            <a href="{{ url_for('ui.stock_overview') }}" class="top-tab-item spa-link {{ 'active' if active_page == 'stock_overview' else '' }}" data-page="stock_overview">통합재고</a>
+            {% endif %}
+            <a href="{{ url_for('ui.stock_transfer_status') }}" class="top-tab-item spa-link {{ 'active' if active_page == 'transfer_status' else '' }}" data-page="transfer_status">이동현황</a>
+        </div>
+
+        <div class="container-fluid p-3 p-lg-4" style="max-width: 1600px;" id="main-content">
+            <div id="flash-messages">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                        <div class="alert {{ 'alert-success' if category == 'success' else 'alert-danger' }} alert-dismissible fade show mb-4 shadow-sm" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            </div>
 
             {% block content %}{% endblock %}
         </div>
@@ -85,6 +102,134 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/common.js') }}"></script>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const mainContent = document.getElementById('main-content');
+            const loaderBar = document.querySelector('.spa-loader .bar');
+            
+            // SPA 링크 클릭 이벤트 위임
+            document.body.addEventListener('click', async (e) => {
+                const link = e.target.closest('a.spa-link');
+                
+                if (!link || link.getAttribute('target') === '_blank' || e.ctrlKey || e.metaKey) return;
+                
+                e.preventDefault();
+                const url = link.getAttribute('href');
+                
+                if (url === '#' || url === window.location.pathname) return;
+
+                await loadPage(url);
+                history.pushState(null, '', url);
+            });
+
+            // 뒤로가기/앞으로가기 이벤트 처리
+            window.addEventListener('popstate', () => {
+                loadPage(window.location.pathname + window.location.search);
+            });
+
+            async function loadPage(url) {
+                loaderBar.style.width = '30%';
+                
+                try {
+                    const response = await fetch(url, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    
+                    if (!response.ok) throw new Error('Page load failed');
+                    
+                    loaderBar.style.width = '70%';
+                    
+                    const htmlText = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlText, 'text/html');
+                    
+                    // 1. 메인 콘텐츠 교체
+                    const newContent = doc.getElementById('main-content');
+                    if (newContent) {
+                        mainContent.innerHTML = newContent.innerHTML;
+                        
+                        // body 속성(data-*) 및 클래스 업데이트
+                        const newBody = doc.body;
+                        if(newBody) {
+                            Object.keys(document.body.dataset).forEach(key => delete document.body.dataset[key]);
+                            Object.keys(newBody.dataset).forEach(key => {
+                                document.body.dataset[key] = newBody.dataset[key];
+                            });
+                            document.body.className = newBody.className;
+                        }
+                    }
+
+                    // 2. 페이지별 스크립트 교체 및 재실행
+                    const newScripts = doc.getElementById('page-scripts');
+                    const oldScripts = document.getElementById('page-scripts');
+                    if (newScripts && oldScripts) {
+                        oldScripts.innerHTML = newScripts.innerHTML;
+                        executeScripts(oldScripts);
+                    }
+
+                    // 3. 타이틀 및 탭 상태 업데이트
+                    document.title = doc.title;
+                    updateActiveTab(url);
+                    
+                    // 4. 전역 이벤트 트리거 (각 페이지 초기화 로직 실행용)
+                    const event = new Event('DOMContentLoaded');
+                    document.dispatchEvent(event);
+                    
+                    // 5. 모바일 메뉴 닫기
+                    const offcanvasEl = document.getElementById('mobileMenuSidebar');
+                    if (offcanvasEl) {
+                        const bsOffcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
+                        if (bsOffcanvas) bsOffcanvas.hide();
+                    }
+
+                } catch (error) {
+                    console.error('SPA Navigation Error:', error);
+                    window.location.href = url; // 에러 발생 시 일반 이동
+                } finally {
+                    loaderBar.style.width = '100%';
+                    setTimeout(() => { loaderBar.style.width = '0'; }, 200);
+                }
+            }
+
+            function updateActiveTab(url) {
+                // 상단 탭 활성화
+                const tabs = document.querySelectorAll('.top-tab-item');
+                tabs.forEach(tab => {
+                    tab.classList.remove('active');
+                    const tabHref = tab.getAttribute('href');
+                    if (url.includes(tabHref) && tabHref !== '/') {
+                        tab.classList.add('active');
+                    } else if (url === '/' && tabHref === '/') {
+                        tab.classList.add('active');
+                    }
+                });
+                
+                // 사이드바 및 하단 메뉴 활성화
+                const navLinks = document.querySelectorAll('.list-group-item, .nav-link');
+                navLinks.forEach(link => {
+                    if(link.getAttribute('href') === url) {
+                        link.classList.add('active');
+                    } else {
+                        link.classList.remove('active');
+                    }
+                });
+            }
+
+            function executeScripts(container) {
+                // innerHTML로 삽입된 스크립트는 실행되지 않으므로, 새 script 태그를 만들어 교체
+                const scripts = container.querySelectorAll('script');
+                scripts.forEach(oldScript => {
+                    const newScript = document.createElement('script');
+                    Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                    newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                    oldScript.parentNode.replaceChild(newScript, oldScript);
+                });
+            }
+        });
+    </script>
+
+    <div id="page-scripts">
     {% block scripts %}{% endblock %}
+    </div>
 </body>
 </html>

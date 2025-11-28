@@ -1,8 +1,3 @@
-/**
- * Order Management Logic
- * Refactored to use Class-based structure and Common Utilities
- */
-
 class OrderApp {
     constructor() {
         this.dom = {
@@ -74,16 +69,13 @@ class OrderApp {
             this.dom.pnInput.addEventListener('keydown', (e) => {
                 if(e.key === 'Enter') { e.preventDefault(); this.dom.btnSearch.click(); }
             });
-            // 초기 로드 시 값이 있으면 조회
             if(this.dom.pnInput.value) this.fetchProductOptions(this.dom.pnInput.value);
         }
 
-        // 상품 검색 결과창 닫기
         document.addEventListener('click', (e) => {
-            if(this.dom.pnInput) {
-                const container = this.dom.pnInput.closest('.position-relative');
-                if(container && !container.contains(e.target)) this.dom.resultsDiv.style.display = 'none';
-            }
+            if(!this.dom.pnInput || !document.body.contains(this.dom.pnInput)) return;
+            const container = this.dom.pnInput.closest('.position-relative');
+            if(container && !container.contains(e.target)) this.dom.resultsDiv.style.display = 'none';
         });
 
         if(this.dom.btnAddRow) this.dom.btnAddRow.addEventListener('click', () => this.addProcessingRow());
@@ -228,14 +220,12 @@ class OrderApp {
     }
 
     validateForm(e) {
-        // 수령 방법 검증
         const selected = this.dom.receptionToggles.querySelector('input:checked');
         if(selected && selected.value === '택배수령') {
             if(!document.getElementById('address1').value) {
                 e.preventDefault(); alert('주소를 입력해주세요.'); return;
             }
         }
-        // 처리 내역 검증
         const selects = this.dom.processingBody.querySelectorAll('select[name="processing_source"]');
         for(let s of selects) {
             if(!s.value) {
@@ -245,4 +235,6 @@ class OrderApp {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => new OrderApp());
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('order-form')) new OrderApp();
+});

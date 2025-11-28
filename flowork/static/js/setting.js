@@ -1,8 +1,3 @@
-/**
- * Admin Setting Logic
- * Refactored to use Class-based structure and Common Utilities
- */
-
 class SettingApp {
     constructor() {
         const ds = document.body.dataset;
@@ -79,7 +74,6 @@ class SettingApp {
 
         this.initCategoryForm();
         
-        // 모달 저장 버튼 이벤트
         const btnSaveStore = document.getElementById('btn-save-edit-store');
         if(btnSaveStore) btnSaveStore.addEventListener('click', () => this.saveStoreEdit(btnSaveStore));
         
@@ -130,7 +124,6 @@ class SettingApp {
         }
     }
 
-    // ... (스토어 관련 나머지 메서드는 패턴이 동일하므로 Flowork.api 적용) ...
     async deleteStore(btn) {
         if(!confirm('삭제하시겠습니까?')) return;
         try {
@@ -144,6 +137,7 @@ class SettingApp {
         document.getElementById('edit_store_name').value = btn.dataset.name;
         document.getElementById('edit_store_phone').value = btn.dataset.phone;
         document.getElementById('btn-save-edit-store').dataset.storeId = btn.dataset.id;
+        this.dom.modalStore.show();
     }
 
     async saveStoreEdit(btn) {
@@ -177,7 +171,6 @@ class SettingApp {
         catch(e) { alert(e.message); }
     }
 
-    // ... (직원 관련 메서드) ...
     async addStaff(e) {
         e.preventDefault();
         const payload = {
@@ -204,6 +197,7 @@ class SettingApp {
         document.getElementById('edit_staff_position').value = btn.dataset.position;
         document.getElementById('edit_staff_contact').value = btn.dataset.contact;
         document.getElementById('btn-save-edit-staff').dataset.staffId = btn.dataset.id;
+        this.dom.modalStaff.show();
     }
 
     async saveStaffEdit(btn) {
@@ -219,7 +213,6 @@ class SettingApp {
         } catch(e) { alert(e.message); }
     }
 
-    // 카테고리 설정 로직
     initCategoryForm() {
         if(!this.dom.formCat) return;
         
@@ -275,4 +268,6 @@ class SettingApp {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => new SettingApp());
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('form-brand-name')) new SettingApp();
+});
