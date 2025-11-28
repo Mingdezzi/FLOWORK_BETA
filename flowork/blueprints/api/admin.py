@@ -2,15 +2,12 @@ import json
 import os
 import traceback
 from flask import request, jsonify, current_app, flash, redirect, url_for, abort
-# [수정] logout_user 추가
 from flask_login import login_required, current_user, logout_user
 from sqlalchemy import func, exc
 
 from flowork.models import db, Brand, Store, Setting, User, Staff, Sale, StockHistory
 from . import api_bp
 from .utils import admin_required
-
-# ... (중간 생략: update_brand_name, upload_brand_logo, load_settings_from_file, update_setting, get_stores, add_store, update_store 함수들은 변경 없음) ...
 
 @api_bp.route('/api/setting/brand_name', methods=['POST'])
 @admin_required
@@ -617,36 +614,3 @@ def delete_staff(staff_id):
         db.session.rollback()
         print(f"Error deleting staff: {e}")
         return jsonify({'status': 'error', 'message': f'서버 오류: {e}'}), 500
-
-@api_bp.route('/api/reset-store-db', methods=['POST'])
-@admin_required
-def reset_store_db():
-    if not current_user.is_super_admin:
-        abort(403, description="전체 시스템 초기화는 슈퍼 관리자만 가능합니다.")
-
-    try:
-        engine = db.get_engine(bind=None)
-        if engine is None:
-            raise Exception("Default bind engine not found.")
-
-        # [수정] ScheduleEvent 제거 (삭제 목록에서 제외)
-        tables_to_drop = [
-            Staff.__table__,
-            Setting.__table__, 
-            User.__table__, 
-            Store.__table__, 
-            Brand.__table__
-        ]
-        
-        db.Model.metadata.drop_all(bind=engine, tables=tables_to_drop, checkfirst=True)
-        db.Model.metadata.create_all(bind=engine, tables=tables_to_drop, checkfirst=True)
-        
-        flash("✅ '계정/매장/설정/직원' 테이블이 성공적으로 초기화되었습니다. (모든 계정 삭제됨)", "success")
-
-    except Exception as e:
-        db.session.rollback()
-        print(f"Store Info DB Reset Error: {e}")
-        traceback.print_exc()
-        flash(f"🚨 계정/매장 DB 초기화 중 오류 발생: {e}", "error")
-    
-    return redirect(url_for('ui.setting_page'))

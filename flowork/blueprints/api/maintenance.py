@@ -6,7 +6,7 @@ from flask import request, flash, redirect, url_for, abort, send_file, jsonify, 
 from flask_login import login_required, current_user
 from sqlalchemy import delete, text
 
-# [수정] Announcement, ScheduleEvent 임포트 제거
+# [수정] Announcement, ScheduleEvent 제거 (시스템에서 삭제된 모델)
 from flowork.models import db, Order, OrderProcessing, Staff, Setting, User, Store, Brand, Product, Variant, StoreStock, Sale, SaleItem, StockHistory
 from flowork.services.db import sync_missing_data_in_db
 from . import api_bp
@@ -311,7 +311,7 @@ def reset_store_db():
         if engine is None:
             raise Exception("Default bind engine not found.")
 
-        # [수정] ScheduleEvent 제거 (해당 테이블을 삭제하지 않음)
+        # [수정] 삭제된 모델(ScheduleEvent) 제거
         tables_to_drop = [
             Staff.__table__,
             Setting.__table__, 
