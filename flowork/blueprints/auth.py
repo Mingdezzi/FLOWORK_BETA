@@ -6,7 +6,7 @@ auth_bp = Blueprint('auth', __name__, template_folder='../templates')
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """(수정) 로그인 페이지 - 브랜드 선택 드롭다운 포함"""
+    """로그인 페이지 - 브랜드 선택 드롭다운 포함"""
     if current_user.is_authenticated:
         return redirect(url_for('ui.home')) 
 
@@ -31,7 +31,7 @@ def login():
                     is_super_admin=False
                 ).first()
                 
-                # [수정] '매장 계정'일 경우 (store_id가 있을 경우)에만 승인/활성 여부 체크
+                # '매장 계정'일 경우 (store_id가 있을 경우)에만 승인/활성 여부 체크
                 if user and user.store_id: 
                     if not user.store or not user.store.is_approved or not user.store.is_active:
                         flash(f"'{user.store.store_name}' 매장이 승인 대기 중이거나 비활성화 상태입니다. 본사에 문의하세요.", 'error')
@@ -65,7 +65,7 @@ def logout():
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register_brand():
     """
-    (수정) '최초 브랜드 등록' 페이지.
+    '최초 브랜드 등록' 페이지.
     브랜드와 해당 브랜드의 '본사 관리자 (admin)' 계정을 생성합니다.
     """
     if current_user.is_authenticated:
@@ -87,12 +87,13 @@ def register_brand():
             db.session.flush() 
 
             # 2. '본사 관리자' User 생성
+            # [수정] is_admin=True 대신 role='admin' 사용
             hq_user = User(
                 username=username,
                 brand_id=new_brand.id,
                 store_id=None,
-                is_admin=True, # 본사 '관리자'
-                is_super_admin=False
+                role='admin',  # 역할 지정
+                is_active=True # 활성 상태
             )
             hq_user.set_password(password)
             db.session.add(hq_user)
@@ -113,7 +114,7 @@ def register_brand():
 @auth_bp.route('/register_store', methods=['GET', 'POST'])
 def register_store():
     """
-    [신규] (요청사항 2) '매장 가입 요청' 페이지.
+    '매장 가입 요청' 페이지.
     매장 담당자가 브랜드/매장을 선택하고 계정 정보를 입력합니다.
     """
     if current_user.is_authenticated:
@@ -151,13 +152,14 @@ def register_store():
                 flash(f"아이디 '{username}'(은)는 해당 브랜드에서 이미 사용 중입니다.", 'error')
                 return redirect(url_for('auth.register_store'))
 
-            # 4. 매장 사용자 계정 생성 (is_admin=True, 매장 관리자)
+            # 4. 매장 사용자 계정 생성 (매장 관리자)
+            # [수정] is_admin=True 대신 role='admin' 사용
             new_user = User(
                 username=username,
                 brand_id=brand_id,
                 store_id=store_id,
-                is_admin=True, # 매장 관리자
-                is_super_admin=False
+                role='admin',  # 역할 지정 (매장 관리자)
+                is_active=True # 계정은 활성 상태지만 로그인은 store.is_approved로 제어
             )
             new_user.set_password(password)
             db.session.add(new_user)
@@ -184,7 +186,7 @@ def register_store():
 @auth_bp.route('/change_password', methods=['POST'])
 @login_required
 def change_password():
-    """[신규 2-5] 비밀번호 변경 API"""
+    """비밀번호 변경 API"""
     data = request.json
     current_pw = data.get('current_password')
     new_pw = data.get('new_password')
