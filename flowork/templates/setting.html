@@ -19,7 +19,24 @@ data-analyze-excel-url="{{ url_for('api.analyze_excel') }}"
 
 {% block content %}
 <div class="container my-4">
-    <hr class="my-4">
+    
+    {% if current_user.is_super_admin and brands %}
+    <div class="card mb-4 shadow-sm border-primary">
+        <div class="card-body py-2 d-flex align-items-center bg-light">
+            <label class="fw-bold text-primary me-3 mb-0"><i class="bi bi-shield-lock-fill me-1"></i>설정 대상 브랜드 선택 (Super Admin)</label>
+            <form method="GET" action="{{ url_for('ui.setting_page') }}" class="d-flex">
+                <select name="brand_id" class="form-select form-select-sm me-2" onchange="this.form.submit()" style="width: 200px;">
+                    {% for brand in brands %}
+                    <option value="{{ brand.id }}" {{ 'selected' if brand.id == target_brand_id else '' }}>
+                        {{ brand.brand_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="mb-4">
         <h2 class="section-title"><i class="bi bi-gear-fill me-2"></i>설정</h2>
     </div>

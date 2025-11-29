@@ -1,6 +1,6 @@
 import json
 import traceback
-from flask import render_template, abort
+from flask import render_template, abort, request
 from flask_login import login_required, current_user
 
 from flowork.models import db, Setting, Brand, Store, Staff
@@ -14,6 +14,17 @@ def setting_page():
 
     try:
         current_brand_id = current_user.current_brand_id
+        brands = []
+        
+        # 슈퍼 관리자 브랜드 선택 로직
+        if current_user.is_super_admin:
+            brands = Brand.query.order_by(Brand.brand_name).all()
+            brand_id_arg = request.args.get('brand_id', type=int)
+            if brand_id_arg:
+                current_brand_id = brand_id_arg
+            elif brands:
+                current_brand_id = brands[0].id
+                
         my_store_id = current_user.store_id
         
         brand_name_display = "FLOWORK (Super Admin)"
@@ -65,7 +76,9 @@ def setting_page():
             'hq_store_id_setting': hq_store_id_setting,
             'category_config': category_config,
             'expected_settings_file': expected_filename,
-            'loaded_settings_file': loaded_settings_file
+            'loaded_settings_file': loaded_settings_file,
+            'brands': brands,
+            'target_brand_id': current_brand_id
         }
         return render_template('setting.html', **context)
     

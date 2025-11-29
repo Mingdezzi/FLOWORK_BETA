@@ -9,7 +9,11 @@ def admin_required(f):
     @wraps(f)
     @login_required 
     def decorated_function(*args, **kwargs):
-        if not current_user.is_admin and not current_user.is_super_admin:
+        # 슈퍼 관리자(is_super_admin)이거나 일반 관리자(is_admin)이면 통과
+        if not current_user.is_authenticated:
+             abort(401)
+        
+        if not (current_user.is_admin or current_user.is_super_admin):
             abort(403, description="이 작업을 수행할 관리자 권한이 없습니다.")
         return f(*args, **kwargs)
     return decorated_function

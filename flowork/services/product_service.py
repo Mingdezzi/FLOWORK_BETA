@@ -81,11 +81,17 @@ class ProductService:
             raise e
 
     @staticmethod
-    @cache.memoize(timeout=300) # 5분간 캐싱 (브랜드 ID 기준)
     def get_stock_overview_matrix(brand_id):
         try:
-            current_app.logger.info(f"Fetching stock overview matrix for brand_id: {brand_id} (Not Cached)")
+            current_app.logger.info(f"Fetching stock overview matrix for brand_id: {brand_id}")
             
+            if not brand_id:
+                return {
+                    'all_stores': [],
+                    'all_variants': [],
+                    'stock_matrix': {}
+                }
+
             all_stores = Store.query.filter(
                 Store.brand_id == brand_id,
                 Store.is_active == True

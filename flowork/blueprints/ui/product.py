@@ -1,10 +1,10 @@
 import traceback
-from flask import render_template, request, abort, current_app
+from flask import render_template, request, abort, current_app, redirect, url_for
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 from sqlalchemy.orm import selectinload
 
-from flowork.models import db, Product, Variant, Store
+from flowork.models import db, Product, Variant, Store, Brand
 from flowork.utils import clean_string_upper
 from flowork.services.db import get_filter_options_from_db
 from flowork.services.product_service import ProductService
@@ -13,25 +13,32 @@ from . import ui_bp
 @ui_bp.route('/product/<int:product_id>')
 @login_required
 def product_detail(product_id):
-    if current_user.is_super_admin:
-        abort(403, description="슈퍼 관리자는 상품 상세를 볼 수 없습니다.")
-
     is_partial = request.args.get('partial') == '1'
 
     try:
-        current_brand_id = current_user.current_brand_id
+        # 슈퍼 관리자 대응: 상품의 브랜드 ID를 확인
+        target_product = db.session.get(Product, product_id)
+        if not target_product:
+             abort(404, description="상품을 찾을 수 없습니다.")
+
+        current_brand_id = target_product.brand_id
+        
+        # 권한 체크: 내 브랜드의 상품인지 (슈퍼관리자는 패스)
+        if not current_user.is_super_admin and current_user.current_brand_id != current_brand_id:
+             abort(403, description="접근 권한이 없는 브랜드의 상품입니다.")
+
         my_store_id = current_user.store_id
         
-        # 서비스 호출로 로직 위임
+        # 서비스 호출
         data = ProductService.get_product_detail_context(product_id, current_brand_id, my_store_id)
         
         if not data:
-            abort(404, description="상품을 찾을 수 없거나 권한이 없습니다.")
+            abort(404, description="상품 상세 정보를 로드할 수 없습니다.")
 
         context = {
             'active_page': 'search',
             'is_partial': is_partial,
-            **data # 서비스에서 리턴한 딕셔너리 언패킹 (product, variants 등 포함)
+            **data 
         }
         return render_template('detail.html', **context)
 
@@ -43,16 +50,33 @@ def product_detail(product_id):
 @ui_bp.route('/stock_overview')
 @login_required
 def stock_overview():
-    if not current_user.is_admin or current_user.store_id:
-        abort(403, description="통합 재고 현황은 본사 관리자만 조회할 수 있습니다.")
+    # 슈퍼 관리자 및 브랜드 관리자 접근 허용
+    if not (current_user.is_super_admin or (current_user.is_admin and not current_user.store_id)):
+        abort(403, description="통합 재고 현황은 본사 관리자 이상만 조회할 수 있습니다.")
     
     try:
-        # 서비스 호출로 로직 위임
-        data = ProductService.get_stock_overview_matrix(current_user.current_brand_id)
+        target_brand_id = None
+        brands = []
+        
+        if current_user.is_super_admin:
+            brands = Brand.query.order_by(Brand.brand_name).all()
+            # 파라미터로 선택된 브랜드 확인, 없으면 첫 번째 브랜드
+            brand_id_arg = request.args.get('brand_id', type=int)
+            if brand_id_arg:
+                target_brand_id = brand_id_arg
+            elif brands:
+                target_brand_id = brands[0].id
+        else:
+            target_brand_id = current_user.current_brand_id
+
+        # 서비스 호출
+        data = ProductService.get_stock_overview_matrix(target_brand_id)
 
         context = {
             'active_page': 'stock_overview',
-            **data # all_stores, all_variants, stock_matrix 포함
+            'brands': brands, # 슈퍼관리자용 브랜드 목록
+            'target_brand_id': target_brand_id,
+            **data 
         }
         return render_template('stock_overview.html', **context)
 
@@ -64,16 +88,21 @@ def stock_overview():
 @ui_bp.route('/list')
 @login_required
 def list_page():
-    if current_user.is_super_admin:
-        abort(403, description="슈퍼 관리자는 상세 검색을 사용할 수 없습니다.")
-
     try:
         page = request.args.get('page', 1, type=int)
         per_page = 20
         
-        current_brand_id = current_user.current_brand_id
+        target_brand_id = None
+        brands = []
+        if current_user.is_super_admin:
+            brands = Brand.query.order_by(Brand.brand_name).all()
+            target_brand_id = request.args.get('brand_id', type=int)
+            if not target_brand_id and brands:
+                target_brand_id = brands[0].id
+        else:
+            target_brand_id = current_user.current_brand_id
         
-        filter_options = get_filter_options_from_db(current_brand_id)
+        filter_options = get_filter_options_from_db(target_brand_id)
 
         search_params = {
             'product_name': request.args.get('product_name', ''),
@@ -88,7 +117,7 @@ def list_page():
         }
         
         query = db.session.query(Product).options(selectinload(Product.variants)).distinct().filter(
-             Product.brand_id == current_brand_id
+             Product.brand_id == target_brand_id
         )
         
         needs_variant_join = False
@@ -140,7 +169,9 @@ def list_page():
             'pagination': pagination,
             'filter_options': filter_options,
             'advanced_search_params': search_params,
-            'showing_all': showing_all
+            'showing_all': showing_all,
+            'brands': brands,
+            'target_brand_id': target_brand_id
         }
         
         return render_template('list.html', **context)
@@ -154,7 +185,13 @@ def list_page():
 @login_required
 def check_page():
     all_stores = []
-    if not current_user.store_id:
+    
+    if current_user.is_super_admin:
+        # 슈퍼 관리자는 모든 브랜드의 모든 활성 매장을 로드 (브랜드 이름으로 정렬)
+        all_stores = Store.query.filter_by(is_active=True).join(Brand).order_by(Brand.brand_name, Store.store_name).all()
+        # 템플릿에서 Store 객체의 brand.brand_name 접근 가능
+    elif not current_user.store_id:
+        # 브랜드 관리자
         all_stores = Store.query.filter_by(
             brand_id=current_user.current_brand_id,
             is_active=True
@@ -166,8 +203,19 @@ def check_page():
 @login_required
 def stock_management():
     try:
+        target_brand_id = None
+        brands = []
+        
+        if current_user.is_super_admin:
+            brands = Brand.query.order_by(Brand.brand_name).all()
+            target_brand_id = request.args.get('brand_id', type=int)
+            if not target_brand_id and brands:
+                target_brand_id = brands[0].id
+        else:
+            target_brand_id = current_user.current_brand_id
+
         missing_data_products = Product.query.filter(
-            Product.brand_id == current_user.current_brand_id, 
+            Product.brand_id == target_brand_id, 
             or_(
                 Product.item_category.is_(None),
                 Product.item_category == '',
@@ -176,16 +224,18 @@ def stock_management():
         ).order_by(Product.product_number).all()
         
         all_stores = []
-        if not current_user.store_id:
-            all_stores = Store.query.filter_by(
-                brand_id=current_user.current_brand_id,
-                is_active=True
-            ).order_by(Store.store_name).all()
+        if not current_user.store_id: 
+            query = Store.query.filter(Store.is_active == True)
+            if target_brand_id:
+                query = query.filter(Store.brand_id == target_brand_id)
+            all_stores = query.order_by(Store.store_name).all()
         
         context = {
             'active_page': 'stock',
             'missing_data_products': missing_data_products,
-            'all_stores': all_stores
+            'all_stores': all_stores,
+            'brands': brands,
+            'target_brand_id': target_brand_id
         }
         return render_template('stock.html', **context)
 
