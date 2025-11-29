@@ -1,11 +1,10 @@
 from flask import jsonify
-from flowork.extensions import celery
+from flowork.extensions import celery_app
 from . import api_bp
 
 @api_bp.route('/api/task_status/<task_id>', methods=['GET'])
 def get_task_status(task_id):
-    # [수정] 특정 태스크 함수가 아닌 celery 앱 자체를 통해 AsyncResult 조회 (범용성 확보)
-    task = celery.AsyncResult(task_id)
+    task = celery_app.AsyncResult(task_id)
     
     if task.state == 'PENDING':
         response = {
