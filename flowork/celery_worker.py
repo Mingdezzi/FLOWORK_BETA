@@ -1,6 +1,5 @@
 from flowork import create_app
-from flowork.extensions import celery
-from config import Config
+from flowork.extensions import celery_app
 
-app = create_app(Config)
-app.app_context().push()
+app = create_app()
+celery = celery_app

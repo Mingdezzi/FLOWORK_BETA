@@ -1,6 +1,6 @@
 from flask import Flask
 from .config import Config
-from .extensions import db, migrate, login_manager
+from .extensions import db, migrate, login_manager, celery_app
 from .blueprints.auth import auth_bp
 from .blueprints.ui import ui_bp
 from .blueprints.api import api_bp
@@ -15,18 +15,20 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)
     login_manager.init_app(app)
 
+    # Celery 설정 업데이트
+    celery_app.conf.update(app.config)
+
     # Blueprints 등록
     app.register_blueprint(auth_bp)
     app.register_blueprint(ui_bp)
     app.register_blueprint(api_bp)
 
-    # CLI 명령어 등록 (이 부분이 있어야 flask init-db 실행 가능)
+    # CLI 명령어 등록
     app.cli.add_command(init_db_command)
     app.cli.add_command(create_super_admin)
 
-    # 모델 import (순환 참조 방지를 위해 함수 내부에서 임포트하지만, 
-    # 이미 commands에서 모델을 로드하므로 여기선 login_manager용으로만 필요)
-    from .models import User
+    # 모델 import
+    from .models import User, Store, Brand, Product, Variant, StoreStock, Sale, SaleItem, StockTransfer, StoreOrder, Setting, StockHistory
 
     @login_manager.user_loader
     def load_user(user_id):
