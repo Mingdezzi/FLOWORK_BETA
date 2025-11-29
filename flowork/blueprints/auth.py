@@ -17,15 +17,23 @@ def login():
         user = None
         
         if not brand_id_str:
+            # 브랜드 미선택 시: 슈퍼 관리자 로그인 시도
             if username == 'superadmin':
                 user = User.query.filter_by(is_super_admin=True, username='superadmin').first()
+            else:
+                # 일반 유저가 브랜드를 선택하지 않은 경우
+                flash('브랜드를 선택해주세요.', 'warning')
+                brands = Brand.query.order_by(Brand.brand_name).all()
+                return render_template('login.html', brands=brands)
         else:
+            # 브랜드 관리자/매장 관리자 로그인
             try:
                 brand_id = int(brand_id_str)
+                # [수정] is_super_admin=False 제거 (DB 컬럼이 아니므로 filter_by에서 사용 불가)
+                # brand_id가 존재하면 슈퍼관리자가 아니므로 조건 불필요
                 user = User.query.filter_by(
                     username=username, 
-                    brand_id=brand_id, 
-                    is_super_admin=False
+                    brand_id=brand_id
                 ).first()
                 
                 if user and user.store_id: 
@@ -70,8 +78,6 @@ def register_brand():
             if not all([brand_name, password]):
                 flash('브랜드명과 비밀번호를 모두 입력해야 합니다.', 'error')
                 return render_template('register.html')
-
-            # 새 브랜드이므로 'admin' 아이디 중복 체크 불필요 (브랜드가 다르면 허용됨)
 
             new_brand = Brand(brand_name=brand_name)
             db.session.add(new_brand)
@@ -126,7 +132,6 @@ def register_store():
                 flash(f"'{store.store_name}' 매장은 이미 가입 요청이 완료되었습니다. 본사 승인을 기다리세요.", 'warning')
                 return redirect(url_for('auth.login'))
 
-            # 해당 브랜드 내에서 아이디 중복 확인
             existing_user = User.query.filter_by(
                 username=username, 
                 brand_id=brand_id
