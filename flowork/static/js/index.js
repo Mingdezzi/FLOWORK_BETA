@@ -415,7 +415,13 @@ class SearchApp {
     }
 }
 
-// 진입점
-document.addEventListener('DOMContentLoaded', () => {
+// 진입점 (SPA 및 초기 로드 모두 대응)
+const initSearch = () => {
     if (document.querySelector('.search-container')) new SearchApp();
-});
+};
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSearch);
+} else {
+    initSearch();
+}
