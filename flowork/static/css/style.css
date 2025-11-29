@@ -4,6 +4,7 @@
     --tab-height: 42px;
     --header-height: 60px;
     --sidebar-width: 240px;
+    --content-max-width: 1600px;
 }
 
 body {
@@ -32,7 +33,32 @@ body {
     }
 }
 
-/* --- 공통 UI 컴포넌트 --- */
+/* 너비 통일 적용 */
+#page-container-wrapper {
+    flex-grow: 1;
+    overflow-y: auto;
+    background-color: var(--bs-body-bg);
+    position: relative;
+    padding: 1.5rem !important;
+}
+
+.main-content-wrapper .container, 
+.main-content-wrapper .container-fluid {
+    width: 100% !important;
+    max-width: var(--content-max-width) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+@media (max-width: 576px) {
+    #page-container-wrapper {
+        padding: 1rem !important;
+    }
+}
+
+/* 공통 UI */
 .card {
     border: none;
     box-shadow: 0 2px 6px rgba(0,0,0,0.04);
@@ -67,7 +93,7 @@ body {
     border-color: #eb6864;
 }
 
-/* --- SPA Tabs Style --- */
+/* Chrome Tabs */
 .chrome-tabs-shell {
     background: #e3e5e8;
     padding: 8px 8px 0 8px;
@@ -145,13 +171,6 @@ body {
     opacity: 1;
 }
 
-#page-container-wrapper {
-    flex-grow: 1;
-    overflow-y: auto;
-    background-color: var(--bs-body-bg);
-    position: relative;
-}
-
 .page-content-layer {
     height: 100%;
     animation: fadeIn 0.2s ease-out;
@@ -186,6 +205,7 @@ body {
     transition: width 0.2s;
 }
 
+/* Sidebar */
 .sidebar-desktop .list-group-item {
     border: none;
     padding: 0.6rem 1rem;
@@ -219,12 +239,9 @@ body {
     .chrome-tabs-shell {
         display: none; 
     }
-    #page-container-wrapper {
-        padding-top: 1rem;
-    }
 }
 
-/* --- [복원] Search Page Keypad Styles --- */
+/* 키패드 스타일 */
 .keypad-hidden { display: none !important; }
 
 .keypad-grid {
@@ -322,7 +339,7 @@ body {
     color: white;
 }
 
-/* --- [복원] Stock Table Layout --- */
+/* 재고 테이블 & Edit 모드 */
 .stock-table th, .stock-table td {
     text-align: center;
     vertical-align: middle;
@@ -330,8 +347,15 @@ body {
 .variant-edit-input {
     text-align: center;
 }
+.view-field { display: table-cell; }
+.edit-field { display: none; }
+body.edit-mode .edit-field { display: table-cell; }
+body.edit-mode .view-field { display: none; }
+body.edit-mode .stock-control .button-stack { display: none; }
+body.edit-mode .btn-toggle-actual-stock { display: none; }
+body.edit-mode #add-variant-row { display: table-row; }
 
-/* --- Sales Page Responsive (Desktop: Grid) --- */
+/* Sales Page Layout Fix for Desktop */
 @media (min-width: 992px) {
     .sales-container .row {
         height: 100%;
@@ -340,8 +364,6 @@ body {
         height: 100%;
         overflow: hidden;
     }
-    /* 데스크탑에서는 탭 버튼 숨김 (이미 html d-lg-none 처리됨) */
-    /* 좌우 패널 모두 보임 */
     .sales-left, .sales-right {
         display: flex !important; 
     }
