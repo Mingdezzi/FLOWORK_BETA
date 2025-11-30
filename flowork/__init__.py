@@ -4,7 +4,7 @@ from logging.handlers import RotatingFileHandler
 from flask import Flask
 from flask_wtf.csrf import CSRFProtect
 from .config import Config
-# [수정] celery -> celery_app 으로 변경
+# [수정] celery 대신 celery_app 임포트
 from .extensions import db, login_manager, celery_app, migrate, cache, csrf
 from .blueprints.auth import auth_bp
 from .blueprints.ui import ui_bp
