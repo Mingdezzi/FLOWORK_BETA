@@ -4,7 +4,9 @@ from openpyxl.utils import column_index_from_string
 from flowork.utils import clean_string_upper, get_choseong, generate_barcode
 import traceback
 import json
-from flowork.models import db, Product, Variant, StoreStock, Setting
+import os
+from flask import current_app
+from flowork.models import db, Product, Variant, StoreStock, Setting, Brand
 
 try:
     from flowork.services.transformer import transform_horizontal_to_vertical
@@ -73,7 +75,6 @@ def _optimize_dataframe(df, brand_settings, upload_mode):
 
     required = ['product_number', 'color', 'size']
     if upload_mode == 'db':
-        # DB 초기화 모드에서는 일부 데이터가 없어도 최대한 살림 (필요시 조정)
         pass
     else:
         df = df.dropna(subset=required)
@@ -157,12 +158,29 @@ def verify_stock_excel(file_path, form, upload_mode):
 def parse_stock_excel(file_path, form, upload_mode, brand_id, excluded_row_indices=None):
     """
     엑셀 파일을 읽어서 정제된 딕셔너리 리스트로 반환합니다.
-    (DB 작업 없음)
     """
     try:
+        # 1. DB 설정 로드
         settings_query = Setting.query.filter_by(brand_id=brand_id).all()
         brand_settings = {s.key: s.value for s in settings_query}
         
+        # 2. [수정] DB에 설정이 없으면 JSON 파일에서 로드 (안전장치)
+        if 'SIZE_MAPPING' not in brand_settings or 'CATEGORY_MAPPING_RULE' not in brand_settings:
+            try:
+                brand = db.session.get(Brand, brand_id)
+                if brand:
+                    json_path = os.path.join(current_app.root_path, 'brands', f'{brand.brand_name}.json')
+                    if os.path.exists(json_path):
+                        with open(json_path, 'r', encoding='utf-8') as f:
+                            file_config = json.load(f)
+                            # 파일 설정을 메모리상의 brand_settings에 병합 (DB 저장 X)
+                            for k, v in file_config.items():
+                                if k not in brand_settings:
+                                    # dict/list는 JSON 문자열로 변환하여 저장
+                                    brand_settings[k] = json.dumps(v, ensure_ascii=False) if isinstance(v, (dict, list)) else str(v)
+            except Exception as e:
+                print(f"Config file fallback failed: {e}")
+
         is_horizontal = form.get('is_horizontal') == 'on'
 
         field_map = {
@@ -192,12 +210,12 @@ def parse_stock_excel(file_path, form, upload_mode, brand_id, excluded_row_indic
                 field_map['size'] = ('col_size', True)
                 field_map['store_stock'] = ('col_store_stock', True)
         
-        elif upload_mode == 'db': # DB 전체 업로드 모드
+        elif upload_mode == 'db': 
              if is_horizontal:
                 import_strategy = 'horizontal_matrix'
              else:
                 field_map['size'] = ('col_size', True)
-                field_map['hq_stock'] = ('col_hq_stock', False) # 선택
+                field_map['hq_stock'] = ('col_hq_stock', False)
 
         column_map_indices = _get_column_indices_from_form(form, field_map, strict=False)
 
@@ -205,8 +223,10 @@ def parse_stock_excel(file_path, form, upload_mode, brand_id, excluded_row_indic
             df = pd.DataFrame()
             if import_strategy == 'horizontal_matrix' and transform_horizontal_to_vertical:
                 try:
+                    # 이제 brand_settings에 값이 채워져 있으므로 안전하게 로드됨
                     size_conf = json.loads(brand_settings.get('SIZE_MAPPING', '{}'))
                     cat_conf = json.loads(brand_settings.get('CATEGORY_MAPPING_RULE', '{}'))
+                    
                     df = transform_horizontal_to_vertical(f, size_conf, cat_conf, column_map_indices)
                     
                     if upload_mode == 'store' and 'hq_stock' in df.columns:

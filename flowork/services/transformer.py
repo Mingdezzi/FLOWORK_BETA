@@ -75,6 +75,10 @@ def transform_horizontal_to_vertical(file_stream, size_mapping_config, category_
     
     df_map = pd.DataFrame(mapping_list)
     
+    # [수정] 매핑 데이터가 없을 경우 빈 DataFrame 생성 시 컬럼 지정 (Merge 에러 방지)
+    if df_map.empty:
+        df_map = pd.DataFrame(columns=['Mapping_Key', 'Size_Code', 'Real_Size'])
+    
     df_melted['Size_Code'] = df_melted['Size_Code'].astype(str)
     df_final = df_melted.merge(df_map, on=['Mapping_Key', 'Size_Code'], how='left')
 
@@ -82,8 +86,9 @@ def transform_horizontal_to_vertical(file_stream, size_mapping_config, category_
         other_map_list = [{'Size_Code': str(code), 'Real_Size_Other': str(val)} 
                           for code, val in size_mapping_config['기타'].items()]
         df_other_map = pd.DataFrame(other_map_list)
-        df_final = df_final.merge(df_other_map, on='Size_Code', how='left')
-        df_final['Real_Size'] = df_final['Real_Size'].fillna(df_final['Real_Size_Other'])
+        if not df_other_map.empty:
+            df_final = df_final.merge(df_other_map, on='Size_Code', how='left')
+            df_final['Real_Size'] = df_final['Real_Size'].fillna(df_final['Real_Size_Other'])
 
     df_final = df_final.dropna(subset=['Real_Size'])
 
@@ -102,7 +107,8 @@ def transform_horizontal_to_vertical(file_stream, size_mapping_config, category_
     
     str_cols = ['product_number', 'product_name', 'color', 'Real_Size', 'DB_Category']
     for col in str_cols:
-        df_final[col] = df_final[col].astype(str).str.strip()
+        if col in df_final.columns:
+            df_final[col] = df_final[col].astype(str).str.strip()
 
     df_final['is_favorite'] = 0
 
@@ -116,5 +122,10 @@ def transform_horizontal_to_vertical(file_stream, size_mapping_config, category_
         'hq_stock', 'sale_price', 'original_price', 
         'item_category', 'release_year', 'is_favorite'
     ]
+    
+    # 최종 컬럼 확인 및 보정
+    for col in final_cols:
+        if col not in df_final.columns:
+             df_final[col] = None
     
     return df_final[final_cols]
