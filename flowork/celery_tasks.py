@@ -2,14 +2,14 @@ import traceback
 import os
 import gc
 from flask import current_app
-from flowork.extensions import celery
+from flowork.extensions import celery_app, db  # [수정] celery -> celery_app
 from flowork.services.excel import parse_stock_excel, verify_stock_excel
 from flowork.services.inventory_service import InventoryService
-from flowork.services.image_process import process_style_code_group
 
-# ... (이미지 처리 태스크 생략) ...
+# 이미지 처리가 필요하다면 import 추가, 여기선 재고 업로드 위주로 작성함
+# from flowork.services.image_process import process_style_code_group 
 
-@celery.task(bind=True)
+@celery_app.task(bind=True)  # [수정] @celery.task -> @celery_app.task
 def task_upsert_inventory(self, file_path, form_data, upload_mode, brand_id, target_store_id, excluded_indices, allow_create):
     """
     재고 업로드 태스크 (매장/본사/단순업데이트)
@@ -17,7 +17,6 @@ def task_upsert_inventory(self, file_path, form_data, upload_mode, brand_id, tar
     """
     try:
         # 1. 엑셀 파싱 (Pure Logic)
-        # parse_stock_excel 함수를 통해 엑셀 데이터를 딕셔너리 리스트로 변환합니다.
         records, error_msg = parse_stock_excel(
             file_path, form_data, upload_mode, brand_id, excluded_indices
         )
@@ -26,7 +25,6 @@ def task_upsert_inventory(self, file_path, form_data, upload_mode, brand_id, tar
             return {'status': 'error', 'message': error_msg or "데이터 파싱 실패"}
 
         # 2. DB 업데이트 (Service Logic)
-        # 진행률 업데이트를 위한 콜백 함수 정의
         def progress_callback(current, total):
             self.update_state(state='PROGRESS', meta={
                 'current': current, 
@@ -34,7 +32,7 @@ def task_upsert_inventory(self, file_path, form_data, upload_mode, brand_id, tar
                 'percent': int((current / total) * 100) if total > 0 else 0
             })
 
-        # InventoryService를 호출하여 실제 DB 트랜잭션을 수행합니다.
+        # InventoryService 호출
         cnt_update, cnt_var, message = InventoryService.process_stock_data(
             records, upload_mode, brand_id, target_store_id, allow_create, progress_callback
         )
@@ -48,12 +46,14 @@ def task_upsert_inventory(self, file_path, form_data, upload_mode, brand_id, tar
         return {'status': 'error', 'message': str(e)}
     finally:
         # 3. 리소스 정리
-        # 작업이 끝나면 임시 엑셀 파일을 삭제하고 가비지 컬렉션을 수행하여 메모리를 확보합니다.
         if os.path.exists(file_path):
-            os.remove(file_path)
+            try:
+                os.remove(file_path)
+            except:
+                pass
         gc.collect()
 
-@celery.task(bind=True)
+@celery_app.task(bind=True)  # [수정] @celery.task -> @celery_app.task
 def task_import_db(self, file_path, form_data, brand_id):
     """
     상품 DB 엑셀 업로드 태스크 (전체 초기화)
@@ -76,7 +76,6 @@ def task_import_db(self, file_path, form_data, brand_id):
                 'percent': int((current / total) * 100) if total > 0 else 0
             })
 
-        # full_import_db는 기존 데이터를 삭제(Delete)하고 대량 삽입(Bulk Insert)을 수행합니다.
         success, message = InventoryService.full_import_db(
             records, brand_id, progress_callback
         )
@@ -97,5 +96,8 @@ def task_import_db(self, file_path, form_data, brand_id):
     finally:
         # 3. 리소스 정리
         if os.path.exists(file_path):
-            os.remove(file_path)
+            try:
+                os.remove(file_path)
+            except:
+                pass
         gc.collect()
