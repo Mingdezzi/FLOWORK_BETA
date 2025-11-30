@@ -3,81 +3,53 @@ import logging
 from logging.handlers import RotatingFileHandler
 from flask import Flask
 from flask_wtf.csrf import CSRFProtect
-from .extensions import db, login_manager, celery, migrate, cache
-from .models import User
-from .commands import init_db_command, update_db_command
+from .config import Config
+# [수정] celery -> celery_app 으로 변경
+from .extensions import db, login_manager, celery_app, migrate, cache, csrf
+from .blueprints.auth import auth_bp
+from .blueprints.ui import ui_bp
+from .blueprints.api import api_bp
+from .commands import init_db_command, create_super_admin
 
-csrf = CSRFProtect()
-
-login_manager.login_view = 'auth.login'
-login_manager.login_message = '로그인이 필요합니다.'
-login_manager.login_message_category = 'info'
-
-@login_manager.user_loader
-def load_user(user_id):
-    return db.session.get(User, int(user_id))
-
-def create_app(config_class):
-    app = Flask(__name__,
-                template_folder='templates',
-                static_folder='static')
+def create_app(config_class=Config):
+    app = Flask(__name__)
     app.config.from_object(config_class)
-    
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = config_class.SQLALCHEMY_ENGINE_OPTIONS
 
     db.init_app(app)
-    login_manager.init_app(app)
-    csrf.init_app(app)
     migrate.init_app(app, db)
-    
+    login_manager.init_app(app)
     cache.init_app(app)
+    csrf.init_app(app)
 
-    celery.conf.broker_url = app.config['CELERY_BROKER_URL']
-    celery.conf.result_backend = app.config['CELERY_RESULT_BACKEND']
+    # [수정] celery_app 설정 업데이트
+    celery_app.conf.update(app.config)
     
-    celery.conf.update(
-        accept_content=['json'],
-        task_serializer='json',
-        result_serializer='json',
-        timezone=os.environ.get('TZ', 'Asia/Seoul'),
-        worker_max_tasks_per_child=app.config.get('CELERY_WORKER_MAX_TASKS_PER_CHILD', 50)
-    )
+    # [중요] Celery 태스크에서 DB 접근을 위해 앱 참조 저장
+    celery_app.flask_app = app
 
-    # [수정] Celery 인스턴스에 Flask 앱 참조 저장 (중요)
-    celery.flask_app = app
-
-    # [수정] ContextTask가 작동하지 않을 경우를 대비해 init에서만 정의하고, 
-    # 실제 컨텍스트 주입은 celery_tasks.py에서 명시적으로 처리하는 것이 안전합니다.
-    class ContextTask(celery.Task):
-        def __call__(self, *args, **kwargs):
-            with app.app_context():
-                return self.run(*args, **kwargs)
-
-    celery.Task = ContextTask
-
-    app.cli.add_command(init_db_command)
-    app.cli.add_command(update_db_command)
-
-    from .blueprints.ui import ui_bp
-    from .blueprints.api import api_bp
-    from .blueprints.auth import auth_bp
-    
+    app.register_blueprint(auth_bp)
     app.register_blueprint(ui_bp)
     app.register_blueprint(api_bp)
-    app.register_blueprint(auth_bp)
-    
+
+    app.cli.add_command(init_db_command)
+    app.cli.add_command(create_super_admin)
+
+    from .models import (
+        User, Store, Brand, Product, Variant, StoreStock, Sale, SaleItem, 
+        StockTransfer, StoreOrder, Setting, StockHistory, Order, ProcessingStep, 
+        Staff, StoreReturn
+    )
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        return db.session.get(User, int(user_id))
+        
     if not app.debug and not app.testing:
         if not os.path.exists('logs'):
             os.mkdir('logs')
-        
         file_handler = RotatingFileHandler('logs/flowork.log', maxBytes=102400, backupCount=10)
-        file_handler.setFormatter(logging.Formatter(
-            '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
-        ))
+        file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(message)s'))
         file_handler.setLevel(logging.INFO)
         app.logger.addHandler(file_handler)
 
-        app.logger.setLevel(logging.INFO)
-        app.logger.info('FLOWORK startup')
-    
     return app

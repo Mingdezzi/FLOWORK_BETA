@@ -11,6 +11,7 @@ login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
 login_manager.login_message_category = 'info'
 
+# [중요] 변수명이 celery_app 이어야 합니다.
 celery_app = Celery(__name__, broker='redis://redis:6379/0')
 cache = Cache()
 csrf = CSRFProtect()
