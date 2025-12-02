@@ -13,10 +13,9 @@ html, body {
     padding: 0;
     background-color: var(--bs-body-bg);
     letter-spacing: -0.02em;
-    overflow: hidden; /* 전체 페이지 스크롤 방지 */
+    overflow: hidden;
 }
 
-/* 메인 레이아웃 */
 .main-content-wrapper {
     height: 100vh;
     overflow: hidden;
@@ -33,38 +32,35 @@ html, body {
 @media (max-width: 991.98px) {
     .main-content-wrapper {
         margin-left: 0;
-        padding-bottom: 60px; /* 하단 네비게이션 높이 확보 */
+        padding-bottom: 60px; 
     }
 }
 
 #page-container-wrapper {
     flex-grow: 1;
-    overflow: hidden; /* 내부 레이어가 스크롤 담당 */
+    overflow: hidden;
     background-color: var(--bs-body-bg);
     position: relative;
     padding: 0 !important;
 }
 
-/* 탭별 컨텐츠 레이어 */
 .page-content-layer {
     height: 100%;
-    overflow-y: auto; /* 기본적으로 세로 스크롤 허용 */
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     animation: fadeIn 0.2s ease-out;
 }
 
-/* 페이지 내부 컨텐츠 영역 */
 .unique-content-area {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
     padding: 1rem;
-    height: 100%; /* 부모 높이 상속 */
+    height: 100%;
     box-sizing: border-box;
 }
 
-/* 일반 컨테이너 재정의 */
 .main-content-wrapper .container, 
 .main-content-wrapper .container-fluid {
     width: 100% !important;
@@ -73,7 +69,6 @@ html, body {
     margin-right: auto !important;
     padding-left: 5px !important;
     padding-right: 5px !important;
-    /* Flex 아이템으로 동작하여 높이 채우기 */
     flex-grow: 1;
     display: flex;
     flex-direction: column;
@@ -81,11 +76,10 @@ html, body {
 
 @media (max-width: 576px) {
     .unique-content-area {
-        padding: 0.5rem; /* 모바일에서는 여백 축소 */
+        padding: 0.5rem;
     }
 }
 
-/* 공통 UI 요소 */
 .card {
     border: none;
     box-shadow: 0 2px 6px rgba(0,0,0,0.04);
@@ -98,7 +92,7 @@ html, body {
 
 .card-body {
     flex: 1 1 auto;
-    overflow: auto; /* 카드 내부 스크롤 */
+    overflow: auto;
 }
 
 .card-header {
@@ -133,7 +127,6 @@ html, body {
     border-color: #eb6864;
 }
 
-/* 탭 스타일 */
 .chrome-tabs-shell {
     background: #e3e5e8;
     padding: 8px 8px 0 8px;
@@ -240,7 +233,6 @@ html, body {
     transition: width 0.2s;
 }
 
-/* 사이드바 */
 .sidebar-desktop .list-group-item {
     border: none;
     padding: 0.6rem 1rem;
@@ -259,45 +251,39 @@ html, body {
     font-weight: 600;
 }
 
-/* Sales 페이지 전용 스타일 */
 .sales-container {
     height: 100%;
-    overflow: hidden; /* 내부 패널이 스크롤 */
+    overflow: hidden;
     display: flex;
     flex-direction: column;
 }
 
 .sales-container .row {
     flex-grow: 1;
-    overflow: hidden; /* row 자체 스크롤 방지 */
-}
-
-/* 패널 공통 */
-.sales-panel {
-    display: flex;
-    flex-direction: column;
-    height: 100%; /* 부모 row 높이 가득 채우기 */
     overflow: hidden;
 }
 
-/* 테이블/리스트 스크롤 영역 */
+.sales-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
 .left-table-wrapper, .cart-table-wrapper {
     flex-grow: 1;
     overflow-y: auto;
     border: 1px solid #dee2e6;
     border-radius: 4px;
     background-color: #fff;
-    min-height: 0; /* Flex 자식 스크롤 필수 */
+    min-height: 0;
 }
 
-/* 반응형 (PC 및 가로모드 모바일) */
 @media (min-width: 992px), (orientation: landscape) and (min-width: 576px) {
-    /* 가로모드이거나 PC일 때 탭 숨김 */
     .mobile-sales-tabs {
         display: none !important;
     }
     
-    /* 두 패널 모두 표시 */
     .sales-panel {
         display: flex !important;
         height: 100%;
@@ -307,26 +293,44 @@ html, body {
         display: flex !important;
     }
     
-    /* 레이아웃 분할 (Bootstrap col 오버라이드 또는 보완) */
     .sales-container .row > .col-lg-5,
     .sales-container .row > .col-lg-7 {
         height: 100%;
     }
 }
 
-/* 모바일 세로모드 */
 @media (max-width: 991.98px) and (orientation: portrait) {
-    /* 선택되지 않은 패널 숨김 */
     .sales-panel:not(.active) {
         display: none !important;
     }
     .sales-panel.active {
         display: flex !important;
-        height: calc(100% - 50px); /* 탭 높이 제외 */
+        height: calc(100% - 50px);
     }
     .mobile-sales-tabs {
         display: flex !important;
         flex-shrink: 0;
+    }
+}
+
+@media (max-width: 991.98px) and (orientation: landscape) {
+    .mobile-top-header,
+    .chrome-tabs-shell,
+    .bottom-tab-bar {
+        display: none !important;
+    }
+
+    .main-content-wrapper {
+        padding-bottom: 0 !important;
+        height: 100vh !important;
+    }
+
+    .unique-content-area {
+        padding: 0.5rem !important;
+    }
+    
+    .mobile-sales-tabs {
+        display: none !important;
     }
 }
 
@@ -336,7 +340,6 @@ html, body {
     }
 }
 
-/* Keypad & 기타 */
 .keypad-hidden { display: none !important; }
 .keypad-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
 .keypad-btn { height: 55px; font-size: 1.2rem; font-weight: 500; border: 1px solid #dee2e6; border-radius: 6px; background-color: #fff; color: #212529; display: flex; align-items: center; justify-content: center; }
@@ -362,3 +365,5 @@ body.edit-mode .view-field { display: none; }
 body.edit-mode .stock-control .button-stack { display: none; }
 body.edit-mode .btn-toggle-actual-stock { display: none; }
 body.edit-mode #add-variant-row { display: table-row; }
+.sticky-col { position: sticky; background-color: #fff !important; z-index: 2; }
+.sticky-col.second-col { left: 80px; z-index: 2; border-right: 1px solid #dee2e6; }
