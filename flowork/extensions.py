@@ -11,7 +11,7 @@ login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
 login_manager.login_message_category = 'info'
 
-# [수정] celery_app -> celery (다른 파일들과 변수명 통일)
-celery = Celery(__name__, broker='redis://redis:6379/0')
+# [수정] 변수명을 celery_app으로 지정 (FLOWORK_B 표준)
+celery_app = Celery(__name__, broker='redis://redis:6379/0')
 cache = Cache()
 csrf = CSRFProtect()

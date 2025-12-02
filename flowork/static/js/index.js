@@ -1,28 +1,21 @@
 class SearchApp {
     constructor() {
-        // 1. 컨테이너 찾기
         this.container = document.querySelector('.search-container:not([data-initialized])');
         if (!this.container) return;
         this.container.dataset.initialized = "true";
 
-        // 2. 설정 값 로드
         const csrfMeta = document.querySelector('meta[name="csrf-token"]');
         this.csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
         this.liveSearchUrl = this.container.dataset.liveSearchUrl;
         
-        // 3. DOM 요소 캐싱
         this.dom = {
             searchInput: this.container.querySelector('#search-query-input'),
             clearTopBtn: this.container.querySelector('#keypad-clear-top'),
             hiddenCategoryInput: this.container.querySelector('#selected-category'),
-            
-            // 키패드 영역
             keypadContainer: this.container.querySelector('#keypad-container'),
             keypadNum: this.container.querySelector('#keypad-num'),
             keypadKor: this.container.querySelector('#keypad-kor'),
             keypadEng: this.container.querySelector('#keypad-eng'),
-            
-            // 리스트/상세 뷰 (중요: 우측 패널 전환 로직용)
             productListUl: this.container.querySelector('#product-list-ul'),
             productListHeader: this.container.querySelector('#product-list-header'),
             paginationUL: this.container.querySelector('#search-pagination'),
@@ -30,8 +23,6 @@ class SearchApp {
             detailContainer: this.container.querySelector('#product-detail-view'),
             detailIframe: this.container.querySelector('#product-detail-iframe'),
             backButton: this.container.querySelector('#btn-back-to-list'),
-            
-            // 폼 및 카테고리 버튼
             searchForm: this.container.querySelector('#search-form'),
             categoryButtons: this.container.querySelectorAll('.category-btn')
         };
@@ -41,18 +32,15 @@ class SearchApp {
             isKorShiftActive: false
         };
 
-        // 한글 자판 매핑 (Shift 키 로직)
         this.korKeyMap = {'ㅂ':'ㅃ', 'ㅈ':'ㅉ', 'ㄷ':'ㄸ', 'ㄱ':'ㄲ', 'ㅅ':'ㅆ', 'ㅐ':'ㅒ', 'ㅔ':'ㅖ'};
         this.korReverseKeyMap = {'ㅃ':'ㅂ', 'ㅉ':'ㅈ', 'ㄸ':'ㄷ', 'ㄲ':'ㄱ', 'ㅆ':'ㅅ', 'ㅒ':'ㅐ', 'ㅖ':'ㅔ'};
 
         this.init();
     }
-    
-    // ... (init, checkMobileMode, bindEvents 등 기존 로직 유지) ...
+
     init() {
         this.checkMobileMode();
         this.bindEvents();
-        
         this.showKeypad('num');
         
         if (this.dom.hiddenCategoryInput) {
@@ -72,17 +60,12 @@ class SearchApp {
     }
 
     bindEvents() {
-        // (1) 키패드 클릭
         if (this.dom.keypadContainer) {
             this.dom.keypadContainer.addEventListener('click', (e) => this.handleKeypadClick(e));
         }
-
-        // (2) 카테고리 버튼
         this.dom.categoryButtons.forEach(btn => {
             btn.addEventListener('click', (e) => this.handleCategoryClick(e));
         });
-
-        // (3) 검색어 초기화
         if (this.dom.clearTopBtn) {
             this.dom.clearTopBtn.addEventListener('click', () => {
                 this.dom.searchInput.value = '';
@@ -90,8 +73,6 @@ class SearchApp {
                 this.dom.searchInput.focus();
             });
         }
-
-        // (4) 검색어 입력
         if (this.dom.searchInput) {
             this.dom.searchInput.addEventListener('input', (e) => {
                 if (!this.dom.searchInput.readOnly) this.triggerSearch();
@@ -104,26 +85,20 @@ class SearchApp {
                 }
             });
         }
-
-        // (5) 폼 제출 방지
         if (this.dom.searchForm) {
             this.dom.searchForm.addEventListener('submit', (e) => {
                 e.preventDefault(); 
             });
         }
-        
-        // (6) 리스트 아이템 클릭 (상세보기 로직 수정)
+        // [수정] 리스트 클릭 시 이벤트 캡처링
         if (this.dom.productListUl) {
             this.dom.productListUl.addEventListener('click', (e) => this.handleProductClick(e));
         }
-        
-        // (7) 뒤로가기
         if (this.dom.backButton) {
             this.dom.backButton.addEventListener('click', () => this.handleBackButtonClick());
         }
     }
 
-    // ... (키패드 로직 handleKeypadClick 등은 기존과 동일) ...
     handleKeypadClick(e) {
         const btn = e.target.closest('button.keypad-btn, button.qwerty-key');
         if (!btn) return;
@@ -266,10 +241,10 @@ class SearchApp {
         }
 
         products.forEach(p => {
-            // [수정] href는 유지하되 onclick으로 인터셉트
+            // [수정] spa-link 제거: index.js에서 직접 클릭 이벤트 처리
             const html = `
                 <li class="list-group-item p-0">
-                    <a href="/product/${p.product_id}" class="product-item d-flex align-items-center text-decoration-none text-body spa-link p-3">
+                    <a href="/product/${p.product_id}" class="product-item d-flex align-items-center text-decoration-none text-body p-3">
                         <img src="${p.image_url}" alt="${p.product_name}" class="item-image rounded border flex-shrink-0" onerror="imgFallback(this)">
                         <div class="item-details flex-grow-1 ms-3 overflow-hidden">
                             <div class="product-name fw-bold text-truncate">${p.product_name}</div>
@@ -324,7 +299,7 @@ class SearchApp {
         ul.appendChild(createItem(currentPage + 1, '&raquo;', false, currentPage === totalPages));
     }
 
-    // [중요] 상세 페이지 처리: 우측 패널(iframe)에 표시
+    // [중요] 상세 페이지 처리: 우측 패널(iframe)에 표시하고 새 탭 방지
     handleProductClick(e) {
         const link = e.target.closest('a.product-item');
         if (!link) return;
@@ -332,6 +307,7 @@ class SearchApp {
         // 데스크탑(992px 이상)에서는 우측 iframe에 표시
         if (window.innerWidth >= 992) {
             e.preventDefault();
+            e.stopPropagation(); // [중요] base.html의 글로벌 리스너 전파 차단
             const targetUrl = link.getAttribute('href');
             const detailUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'partial=1';
             
@@ -341,7 +317,7 @@ class SearchApp {
                 this.dom.detailContainer.style.display = 'flex';
             }
         }
-        // 모바일에서는 일반 링크 이동 (SPA 탭 로직이 처리함)
+        // 모바일에서는 기본 동작(페이지 이동)을 허용하거나 별도 로직
     }
 
     handleBackButtonClick() {

@@ -34,7 +34,7 @@ class InventoryService:
                 if pn_clean not in product_map and pn_clean not in seen_new_pns:
                     if allow_create:
                         pname = item.get('product_name') or item.get('product_number')
-                        # [수정] 초성 자동 생성
+                        # [수정] 초성 데이터 생성 로직 추가
                         choseong = item.get('product_name_choseong')
                         if not choseong and pname:
                             choseong = get_choseong(pname)
@@ -45,7 +45,7 @@ class InventoryService:
                             'product_name': pname,
                             'product_number_cleaned': pn_clean,
                             'product_name_cleaned': clean_string_upper(pname),
-                            'product_name_choseong': choseong, # [중요] DB 저장
+                            'product_name_choseong': choseong,
                             'release_year': item.get('release_year'),
                             'item_category': item.get('item_category'),
                             'is_favorite': item.get('is_favorite', 0)
@@ -229,7 +229,7 @@ class InventoryService:
                 if pn_clean and pn_clean not in unique_products:
                     pname = item.get('product_name') or item.get('product_number')
                     
-                    # [수정] 초성 자동 생성
+                    # [수정] 초성 자동 생성 및 저장
                     choseong = item.get('product_name_choseong')
                     if not choseong and pname:
                         choseong = get_choseong(pname)
@@ -240,7 +240,7 @@ class InventoryService:
                         'product_name': pname,
                         'product_number_cleaned': pn_clean,
                         'product_name_cleaned': clean_string_upper(pname),
-                        'product_name_choseong': choseong, # [중요] DB 저장
+                        'product_name_choseong': choseong,
                         'release_year': item.get('release_year'),
                         'item_category': item.get('item_category'),
                         'is_favorite': item.get('is_favorite', 0)

@@ -23,7 +23,7 @@ class Product(db.Model):
     
     is_favorite = db.Column(db.Integer, default=0)
     
-    # 이미지 처리 관련 필드 (B버전에서도 모델 정의는 유지하여 호환성 확보)
+    # 이미지 처리 관련 필드
     image_status = db.Column(db.String(20), default=ImageProcessStatus.READY)
     thumbnail_url = db.Column(db.String(500), nullable=True)
     detail_image_url = db.Column(db.String(500), nullable=True)
@@ -97,7 +97,7 @@ class StockHistory(db.Model):
     
     change_type = db.Column(db.String(20), nullable=False)
     quantity_change = db.Column(db.Integer, nullable=False)
-    current_quantity = db.Column(db.Integer, nullable=False) # final_quantity -> current_quantity (A/B 호환)
+    current_quantity = db.Column(db.Integer, nullable=False)
     
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     description = db.Column(db.String(200))

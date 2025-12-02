@@ -1,15 +1,17 @@
 import traceback
 import os
 import gc
-# [수정] extensions에서 celery 임포트 (이름 통일)
-from flowork.extensions import celery, db
+# [수정] celery_app 임포트
+from flowork.extensions import celery_app, db
 from flowork.services.excel import parse_stock_excel
 from flowork.services.inventory_service import InventoryService
 
-@celery.task(bind=True)
+# [수정] celery_app 사용 및 AppContext 주입
+
+@celery_app.task(bind=True)
 def task_upsert_inventory(self, file_path, form_data, upload_mode, brand_id, target_store_id, excluded_indices, allow_create):
     """재고 업로드 태스크"""
-    # [중요] 앱 컨텍스트 활성화: DB 작업을 위해 필수
+    # [중요] 앱 컨텍스트 활성화
     with self.app.flask_app.app_context():
         try:
             # 1. 엑셀 파싱
@@ -40,13 +42,12 @@ def task_upsert_inventory(self, file_path, form_data, upload_mode, brand_id, tar
             traceback.print_exc()
             return {'status': 'error', 'message': str(e)}
         finally:
-            # 리소스 정리
             if os.path.exists(file_path):
                 try: os.remove(file_path)
                 except: pass
             gc.collect()
 
-@celery.task(bind=True)
+@celery_app.task(bind=True)
 def task_import_db(self, file_path, form_data, brand_id):
     """상품 DB 전체 초기화 태스크"""
     with self.app.flask_app.app_context():
@@ -74,7 +75,6 @@ def task_import_db(self, file_path, form_data, brand_id):
                 return {'status': 'completed', 'result': {'message': message}}
             else:
                 return {'status': 'error', 'message': message}
-                
         except Exception as e:
             traceback.print_exc()
             return {'status': 'error', 'message': str(e)}
