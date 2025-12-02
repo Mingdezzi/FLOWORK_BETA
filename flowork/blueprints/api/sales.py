@@ -14,14 +14,20 @@ from flowork.services.sales_service import SalesService
 from . import api_bp
 
 def _get_target_store_id():
+    # 1. 로그인한 사용자가 매장 계정이면 그 매장 ID 반환
     if current_user.store_id:
         return current_user.store_id
     
+    # 2. 관리자 계정이면 요청 파라미터에서 확인
     if current_user.is_admin or current_user.is_super_admin:
+        # [수정] GET 요청이면 무조건 query string(args)만 확인 (request.json 접근 금지)
+        if request.method == 'GET':
+            return request.args.get('target_store_id', type=int)
+        
+        # POST 등 다른 요청일 때만 JSON 확인
         if request.is_json:
             return request.json.get('target_store_id')
-        else:
-            return request.args.get('target_store_id', type=int)
+            
     return None
 
 @api_bp.route('/api/sales/settings', methods=['GET', 'POST'])
@@ -29,7 +35,7 @@ def _get_target_store_id():
 def sales_settings():
     store_id = _get_target_store_id()
     
-    # [수정] 매장 미선택 시 400 에러 대신 빈 설정 반환
+    # 매장 미선택 시 400 에러 대신 빈 설정 반환
     if not store_id: 
         return jsonify({'status': 'success', 'config': {}})
     

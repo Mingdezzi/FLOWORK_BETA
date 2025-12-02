@@ -1,4 +1,3 @@
-// [수정] const 선언 제거 및 window 객체 직접 할당 (중복 로드 방지)
 if (!window.Flowork) {
     window.Flowork = {
         getCsrfToken: () => {
@@ -7,23 +6,32 @@ if (!window.Flowork) {
         },
 
         api: async (url, options = {}) => {
-            const defaults = {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': window.Flowork.getCsrfToken(),
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            };
-            
-            const settings = { ...defaults, ...options };
-            if (options.headers) {
-                settings.headers = { ...defaults.headers, ...options.headers };
+            if (!url) {
+                console.error("API Error: URL is undefined or null");
+                window.Flowork.toast("시스템 오류: 요청 URL이 없습니다.", 'danger');
+                throw new Error("URL missing");
             }
+
+            const headers = {
+                'X-CSRFToken': window.Flowork.getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest'
+            };
+
+            // [수정] GET/HEAD 요청이 아닐 때만 JSON 헤더 추가 (중요!)
+            const method = (options.method || 'GET').toUpperCase();
+            if (method !== 'GET' && method !== 'HEAD') {
+                headers['Content-Type'] = 'application/json';
+            }
+            
+            if (options.headers) {
+                Object.assign(headers, options.headers);
+            }
+
+            const settings = { ...options, headers };
 
             try {
                 const response = await fetch(url, settings);
                 
-                // Content-Type 확인하여 JSON 파싱 시도
                 const contentType = response.headers.get("content-type");
                 if (contentType && contentType.includes("application/json")) {
                     const data = await response.json();
@@ -32,7 +40,6 @@ if (!window.Flowork) {
                     }
                     return data;
                 } else {
-                    // JSON이 아닌 응답(404 HTML 등) 처리
                     if (!response.ok) {
                         throw new Error(`Server Error: ${response.status} (${response.statusText})`);
                     }
@@ -40,7 +47,11 @@ if (!window.Flowork) {
                 }
             } catch (error) {
                 console.error("API Error:", error);
-                window.Flowork.toast(error.message, 'danger');
+                if (window.Flowork && window.Flowork.toast) {
+                    window.Flowork.toast(error.message, 'danger');
+                } else {
+                    alert(error.message);
+                }
                 throw error;
             }
         },
