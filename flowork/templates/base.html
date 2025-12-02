@@ -97,6 +97,9 @@
 
     {% if not is_partial %}
     <script>
+        // 전역 앱 인스턴스 변수 (현재 활성화된 페이지의 JS 인스턴스)
+        window.CurrentApp = null;
+
         if (window.TabManagerInitialized) {
             console.warn("TabManager already initialized. Skipping.");
         } else {
@@ -122,10 +125,8 @@
                     this.loadTabsFromStorage();
 
                     // 3. 중복 제거: 이미 열린 탭 중에 현재 URL과 같은 것이 있는지 확인
-                    // URL 비교 시 쿼리 스트링 순서 등이 다를 수 있으므로 pathname 위주로 비교하거나 정확히 일치하는지 확인
                     let currentTab = this.tabs.find(t => t.url === initialUrl);
 
-                    // 만약 정확히 일치하는 URL이 없다면, 혹시 '대시보드'(/ or /home)인지 확인
                     if (!currentTab && (initialUrl === '/' || initialUrl === '/home')) {
                         currentTab = this.tabs.find(t => t.url === '/' || t.url === '/home');
                     }
@@ -147,17 +148,16 @@
                         currentTab = { id: tabId, url: initialUrl, title: initialTitle, isClosable: isClosable };
                         this.tabs.push(currentTab);
                     } else {
-                        // 저장된 탭이 있다면, 현재 URL로 업데이트 (혹시 모를 동기화)
                         currentTab.url = initialUrl;
                     }
 
-                    // 5. 초기 페이지 컨텐츠에 ID 부여 (재사용)
+                    // 5. 초기 페이지 컨텐츠에 ID 부여
                     if (initialContentEl) {
                         initialContentEl.id = `page-${currentTab.id}`;
                     }
 
                     // 6. UI 렌더링 및 활성화
-                    this.saveTabsToStorage(); // 탭 목록 최신화 저장
+                    this.saveTabsToStorage();
                     this.renderTabsUI();
                     this.activateTab(currentTab.id, false);
                     this.bindEvents();
@@ -183,10 +183,8 @@
                         const path = window.location.pathname + window.location.search;
                         const existingTab = this.tabs.find(t => t.url === path);
                         if (existingTab) {
-                            this.activateTab(existingTab.id, false); // popstate는 pushState 불필요
+                            this.activateTab(existingTab.id, false);
                         } else {
-                            // 뒤로가기 했는데 탭이 없다면 새로 로드하지 않고 현재 탭 유지 또는 홈으로 (선택사항)
-                            // 여기서는 새로 로드 시도
                             this.open(path, 'Loading...', false);
                         }
                     });
@@ -212,7 +210,6 @@
                 },
 
                 saveTabsToStorage() {
-                    // 중복 제거 후 저장 (안전장치)
                     const uniqueTabs = [];
                     const seenUrls = new Set();
                     
@@ -228,7 +225,7 @@
                         }
                     });
                     
-                    this.tabs = uniqueTabs; // 메모리 상의 탭 목록도 중복 제거된 것으로 갱신
+                    this.tabs = uniqueTabs;
                     localStorage.setItem('flowork_tabs', JSON.stringify(uniqueTabs));
                 },
 
@@ -250,11 +247,9 @@
                 renderTabsUI() {
                     this.container.innerHTML = '';
                     
-                    // 탭 렌더링
                     this.tabs.forEach(tab => {
                         this.addTabUI(tab.id, tab.title, tab.url, tab.isClosable);
                         
-                        // 컨텐츠 영역 확인 및 생성 (초기 로드된 컨텐츠가 id를 가졌는지 확인)
                         let contentEl = document.getElementById(`page-${tab.id}`);
                         if (!contentEl) {
                             contentEl = document.createElement('div');
@@ -269,7 +264,6 @@
                 open(url, title, pushState = true) {
                     if (!url || url === '#') return;
 
-                    // URL 중복 체크 강화 (쿼리스트링 포함 정확 비교)
                     const existingTab = this.tabs.find(t => t.url === url);
                     
                     if (existingTab) {
@@ -340,7 +334,6 @@
                 },
 
                 createNewTab(url, title, contentHtml, isClosable) {
-                    // 생성 전 한 번 더 중복 체크
                     const existingTab = this.tabs.find(t => t.url === url);
                     if (existingTab) {
                         this.activateTab(existingTab.id);
@@ -365,7 +358,6 @@
                 },
 
                 addTabUI(id, title, url, isClosable) {
-                    // UI 중복 생성 방지
                     if (this.container.querySelector(`.chrome-tab[data-id="${id}"]`)) return;
 
                     const tabEl = document.createElement('div');
@@ -390,6 +382,12 @@
                 },
 
                 activateTab(id, pushState = true) {
+                    // 이전 앱의 destroy 호출
+                    if (this.activeTabId && this.activeTabId !== id) {
+                        // 페이지 전환 시에는 destroy 하지 않고 유지 (SPA 느낌)
+                        // 단, 메모리가 부족하면 여기서 정리할 수도 있음
+                    }
+
                     this.activeTabId = id;
 
                     this.container.querySelectorAll('.chrome-tab').forEach(el => {
@@ -399,7 +397,6 @@
                     this.pageWrapper.querySelectorAll('.page-content-layer').forEach(el => {
                         if (el.id === `page-${id}`) {
                             el.style.display = 'block';
-                            // 컨텐츠가 비어있다면(저장된 탭 복원 시) 다시 로드
                             if (el.innerHTML.trim() === '') {
                                 const tab = this.tabs.find(t => t.id === id);
                                 if(tab) this.fetchPage(tab.url, tab.title, tab.isClosable);
@@ -423,6 +420,18 @@
 
                     if (this.tabs[idx].isClosable === false) return;
 
+                    // [수정] 탭을 닫을 때 현재 활성화된 앱 인스턴스 정리
+                    // 닫으려는 탭이 현재 활성화된 탭이고, 전역 앱 인스턴스가 있다면 파괴
+                    if (this.activeTabId === id && window.CurrentApp && typeof window.CurrentApp.destroy === 'function') {
+                        try {
+                            window.CurrentApp.destroy();
+                            window.CurrentApp = null;
+                            console.log(`App destroyed for tab ${id}`);
+                        } catch (e) {
+                            console.error("Failed to destroy app:", e);
+                        }
+                    }
+
                     const tabEl = this.container.querySelector(`.chrome-tab[data-id="${id}"]`);
                     if (tabEl) tabEl.remove();
 
@@ -434,7 +443,6 @@
 
                     if (this.activeTabId === id) {
                         if (this.tabs.length > 0) {
-                            // 바로 왼쪽 탭 활성화, 없다면 첫 번째 탭
                             const nextTab = this.tabs[Math.max(0, idx - 1)];
                             this.activateTab(nextTab.id);
                         } else {
@@ -457,6 +465,12 @@
                 },
 
                 executeScripts(container) {
+                    // 새 페이지 스크립트 실행 전 기존 앱 정리 (혹시 남아있다면)
+                    if (window.CurrentApp && typeof window.CurrentApp.destroy === 'function') {
+                        // 페이지가 완전히 바뀌는 것이므로 이전 앱 정리
+                        // 주의: 탭 전환(activateTab)이 아닌 fetchPage(새로 로드) 시에만 수행됨
+                    }
+
                     const scripts = container.querySelectorAll('script');
                     scripts.forEach(oldScript => {
                         const newScript = document.createElement('script');

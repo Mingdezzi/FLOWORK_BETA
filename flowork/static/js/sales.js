@@ -5,6 +5,9 @@ if (!window.SalesApp) {
             if (!this.container) return;
             this.container.dataset.initialized = "true";
 
+            // [추가] 이벤트 리스너 관리를 위한 AbortController
+            this.abortController = new AbortController();
+
             this.urls = JSON.parse(this.container.dataset.apiUrls || '{}');
             this.targetStoreId = this.container.dataset.targetStoreId;
             
@@ -58,17 +61,20 @@ if (!window.SalesApp) {
         }
 
         init() {
+            // [수정] AbortSignal 옵션 추가
+            const signal = this.abortController.signal;
+
             if (this.dom.detailModalEl) {
                 this.detailModal = new bootstrap.Modal(this.dom.detailModalEl);
                 this.dom.detailModalEl.addEventListener('hidden.bs.modal', () => {
                      if(this.dom.searchInput) this.dom.searchInput.focus();
-                });
+                }, { signal });
             }
             if (this.dom.recordsModalEl) {
                 this.recordsModal = new bootstrap.Modal(this.dom.recordsModalEl);
                 this.dom.recordsModalEl.addEventListener('hidden.bs.modal', () => {
                      if(this.dom.searchInput) this.dom.searchInput.focus();
-                });
+                }, { signal });
             }
 
             const today = new Date();
@@ -88,8 +94,8 @@ if (!window.SalesApp) {
 
             this.loadSettings();
 
-            if(this.dom.modeSales) this.dom.modeSales.addEventListener('change', () => this.setMode('sales'));
-            if(this.dom.modeRefund) this.dom.modeRefund.addEventListener('change', () => this.setMode('refund'));
+            if(this.dom.modeSales) this.dom.modeSales.addEventListener('change', () => this.setMode('sales'), { signal });
+            if(this.dom.modeRefund) this.dom.modeRefund.addEventListener('change', () => this.setMode('refund'), { signal });
             
             if(this.dom.searchInput) {
                 this.dom.searchInput.addEventListener('keydown', (e) => { 
@@ -97,33 +103,43 @@ if (!window.SalesApp) {
                         e.preventDefault();
                         this.search(); 
                     }
-                });
+                }, { signal });
             }
             if(this.dom.btnSearch) {
                 this.dom.btnSearch.addEventListener('click', (e) => {
                     e.preventDefault();
                     this.search();
-                });
+                }, { signal });
             }
             
-            if(this.dom.btnToggleOnline) this.dom.btnToggleOnline.addEventListener('click', () => this.toggleOnline());
-            if(this.dom.btnClearCart) this.dom.btnClearCart.addEventListener('click', () => { this.cart = []; this.renderCart(); });
+            if(this.dom.btnToggleOnline) this.dom.btnToggleOnline.addEventListener('click', () => this.toggleOnline(), { signal });
+            if(this.dom.btnClearCart) this.dom.btnClearCart.addEventListener('click', () => { this.cart = []; this.renderCart(); }, { signal });
             
-            if(this.dom.btnSubmitSale) this.dom.btnSubmitSale.addEventListener('click', () => this.submitSale());
-            if(this.dom.btnSubmitRefund) this.dom.btnSubmitRefund.addEventListener('click', () => this.submitRefund());
-            if(this.dom.btnCancelRefund) this.dom.btnCancelRefund.addEventListener('click', () => this.resetRefund());
+            if(this.dom.btnSubmitSale) this.dom.btnSubmitSale.addEventListener('click', () => this.submitSale(), { signal });
+            if(this.dom.btnSubmitRefund) this.dom.btnSubmitRefund.addEventListener('click', () => this.submitRefund(), { signal });
+            if(this.dom.btnCancelRefund) this.dom.btnCancelRefund.addEventListener('click', () => this.resetRefund(), { signal });
             
-            if(this.dom.btnHold) this.dom.btnHold.addEventListener('click', () => this.toggleHold());
-            if(this.dom.btnDiscount) this.dom.btnDiscount.addEventListener('click', () => this.applyAutoDiscount());
+            if(this.dom.btnHold) this.dom.btnHold.addEventListener('click', () => this.toggleHold(), { signal });
+            if(this.dom.btnDiscount) this.dom.btnDiscount.addEventListener('click', () => this.applyAutoDiscount(), { signal });
 
             if(this.dom.mobileTabs) {
                 this.dom.mobileTabs.forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         const targetId = e.currentTarget.dataset.target;
                         this.switchMobileTab(targetId);
-                    });
+                    }, { signal });
                 });
             }
+        }
+
+        // [추가] 정리 메서드
+        destroy() {
+            this.abortController.abort(); // 모든 이벤트 리스너 제거
+            if (this.detailModal) this.detailModal.dispose();
+            if (this.recordsModal) this.recordsModal.dispose();
+            this.cart = null;
+            this.dom = null;
+            console.log('SalesApp destroyed');
         }
 
         switchMobileTab(targetId) {
@@ -530,5 +546,6 @@ if (!window.SalesApp) {
 }
 
 if (document.querySelector('.sales-container')) {
-    new window.SalesApp();
+    // [수정] 전역 인스턴스에 할당
+    window.CurrentApp = new window.SalesApp();
 }
