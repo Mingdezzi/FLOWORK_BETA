@@ -1,3 +1,4 @@
+// [수정] const 선언 제거 및 window 객체 직접 할당 (중복 로드 방지)
 if (!window.Flowork) {
     window.Flowork = {
         getCsrfToken: () => {
@@ -21,17 +22,21 @@ if (!window.Flowork) {
 
             try {
                 const response = await fetch(url, settings);
-                const contentType = response.headers.get("content-type");
                 
-                if (contentType && contentType.indexOf("application/json") !== -1) {
+                // Content-Type 확인하여 JSON 파싱 시도
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
                     const data = await response.json();
                     if (!response.ok) {
                         throw new Error(data.message || `Server Error: ${response.status}`);
                     }
                     return data;
                 } else {
-                    const text = await response.text();
-                    throw new Error(`API Error: Non-JSON response (${response.status})`);
+                    // JSON이 아닌 응답(404 HTML 등) 처리
+                    if (!response.ok) {
+                        throw new Error(`Server Error: ${response.status} (${response.statusText})`);
+                    }
+                    return await response.text();
                 }
             } catch (error) {
                 console.error("API Error:", error);
@@ -87,6 +92,7 @@ if (!window.Flowork) {
             
             container.insertAdjacentHTML('beforeend', html);
             const toastEl = document.getElementById(id);
+            
             if (typeof bootstrap !== 'undefined') {
                 const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
                 toast.show();

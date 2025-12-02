@@ -29,6 +29,7 @@ def _get_target_store_id():
 def sales_settings():
     store_id = _get_target_store_id()
     
+    # [수정] 매장 미선택 시 400 에러 대신 빈 설정 반환
     if not store_id: 
         return jsonify({'status': 'success', 'config': {}})
     
