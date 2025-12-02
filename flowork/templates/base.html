@@ -108,9 +108,17 @@
                 container: document.getElementById('dynamic-tabs-container'),
                 pageWrapper: document.getElementById('page-container-wrapper'),
                 loader: document.querySelector('.spa-loader .bar'),
+                isInitRun: false, // [수정] 중복 실행 방지 플래그
 
                 init() {
+                    // [수정] 이미 실행되었다면 중단 (SPA 이벤트 중복 트리거 방지)
+                    if (this.isInitRun) return;
+                    this.isInitRun = true;
+
                     const initialContentEl = document.getElementById('initial-page-content');
+                    // [수정] 요소가 없으면 중단 (안전장치)
+                    if (!initialContentEl) return;
+
                     const initialUrl = window.location.pathname + window.location.search;
                     
                     let initialTitle = document.title.replace('FLOWORK - ', '').trim();
