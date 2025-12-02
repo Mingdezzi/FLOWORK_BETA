@@ -16,20 +16,17 @@ def product_detail(product_id):
     is_partial = request.args.get('partial') == '1'
 
     try:
-        # 슈퍼 관리자 대응: 상품의 브랜드 ID를 확인
         target_product = db.session.get(Product, product_id)
         if not target_product:
              abort(404, description="상품을 찾을 수 없습니다.")
 
         current_brand_id = target_product.brand_id
         
-        # 권한 체크: 내 브랜드의 상품인지 (슈퍼관리자는 패스)
         if not current_user.is_super_admin and current_user.current_brand_id != current_brand_id:
              abort(403, description="접근 권한이 없는 브랜드의 상품입니다.")
 
         my_store_id = current_user.store_id
         
-        # 서비스 호출
         data = ProductService.get_product_detail_context(product_id, current_brand_id, my_store_id)
         
         if not data:
@@ -50,7 +47,6 @@ def product_detail(product_id):
 @ui_bp.route('/stock_overview')
 @login_required
 def stock_overview():
-    # 슈퍼 관리자 및 브랜드 관리자 접근 허용
     if not (current_user.is_super_admin or (current_user.is_admin and not current_user.store_id)):
         abort(403, description="통합 재고 현황은 본사 관리자 이상만 조회할 수 있습니다.")
     
@@ -60,7 +56,6 @@ def stock_overview():
         
         if current_user.is_super_admin:
             brands = Brand.query.order_by(Brand.brand_name).all()
-            # 파라미터로 선택된 브랜드 확인, 없으면 첫 번째 브랜드
             brand_id_arg = request.args.get('brand_id', type=int)
             if brand_id_arg:
                 target_brand_id = brand_id_arg
@@ -69,12 +64,11 @@ def stock_overview():
         else:
             target_brand_id = current_user.current_brand_id
 
-        # 서비스 호출
         data = ProductService.get_stock_overview_matrix(target_brand_id)
 
         context = {
             'active_page': 'stock_overview',
-            'brands': brands, # 슈퍼관리자용 브랜드 목록
+            'brands': brands,
             'target_brand_id': target_brand_id,
             **data 
         }
@@ -187,11 +181,8 @@ def check_page():
     all_stores = []
     
     if current_user.is_super_admin:
-        # 슈퍼 관리자는 모든 브랜드의 모든 활성 매장을 로드 (브랜드 이름으로 정렬)
         all_stores = Store.query.filter_by(is_active=True).join(Brand).order_by(Brand.brand_name, Store.store_name).all()
-        # 템플릿에서 Store 객체의 brand.brand_name 접근 가능
     elif not current_user.store_id:
-        # 브랜드 관리자
         all_stores = Store.query.filter_by(
             brand_id=current_user.current_brand_id,
             is_active=True
@@ -225,7 +216,7 @@ def stock_management():
         
         all_stores = []
         if not current_user.store_id: 
-            query = Store.query.filter(Store.is_active == True)
+            query = Store.query.filter(Store.is_active==True)
             if target_brand_id:
                 query = query.filter(Store.brand_id == target_brand_id)
             all_stores = query.order_by(Store.store_name).all()

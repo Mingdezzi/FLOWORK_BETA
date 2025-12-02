@@ -51,7 +51,8 @@ class SalesApp {
             btnHold: c.querySelector('#btn-hold-sale'),
             btnDiscount: c.querySelector('#btn-apply-discount'),
             detailModalEl: parent.querySelector('#detail-modal'),
-            recordsModalEl: parent.querySelector('#records-modal')
+            recordsModalEl: parent.querySelector('#records-modal'),
+            storeSelect: c.querySelector('#admin-store-select') 
         };
     }
 
@@ -164,8 +165,8 @@ class SalesApp {
         this.dom.searchInput.value = '';
 
         const isSales = (mode === 'sales');
-        this.dom.dateSales.style.display = isSales ? 'block' : 'none';
-        this.dom.dateRefund.style.display = isSales ? 'none' : 'block';
+        if(this.dom.dateSales) this.dom.dateSales.style.display = isSales ? 'block' : 'none';
+        if(this.dom.dateRefund) this.dom.dateRefund.style.display = isSales ? 'none' : 'block';
         
         this.dom.salesActions.style.display = isSales ? 'block' : 'none';
         this.dom.refundActions.style.display = isSales ? 'none' : 'block';
@@ -185,6 +186,12 @@ class SalesApp {
     async search() {
         const query = this.dom.searchInput.value.trim();
         if (!query) return;
+
+        if (!this.targetStoreId && this.dom.storeSelect && !this.dom.storeSelect.value) {
+            Flowork.toast('매장을 먼저 선택해주세요.', 'warning');
+            this.dom.storeSelect.focus();
+            return;
+        }
 
         this.dom.leftTbody.innerHTML = '<tr><td colspan="4" class="text-center py-3">검색 중...</td></tr>';
 

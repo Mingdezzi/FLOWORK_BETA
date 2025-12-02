@@ -11,7 +11,7 @@
 </div>
 
 <div class="sales-container container-fluid" 
-     data-target-store-id="{{ target_store_id }}"
+     data-target-store-id="{{ target_store_id | default('', true) }}"
      data-api-urls='{
         "searchSalesProducts": "{{ url_for("api.search_sales_products") }}",
         "getRefundRecords": "{{ url_for("api.get_refund_records") }}",
@@ -25,7 +25,7 @@
         <div class="col-lg-5 d-flex flex-column sales-panel active" id="sales-left-panel">
             {% if not current_user.store_id %}
             <div class="mb-2">
-                <select class="form-select form-select-sm border-primary fw-bold" onchange="window.location.href='{{ url_for('ui.sales_register') }}?store_id=' + this.value">
+                <select class="form-select form-select-sm border-primary fw-bold" id="admin-store-select" onchange="window.location.href='{{ url_for('ui.sales_register') }}?store_id=' + this.value">
                     <option value="">-- 매장 선택 (관리자) --</option>
                     {% for s in stores %}
                     <option value="{{ s.id }}" {{ 'selected' if s.id == target_store_id else '' }}>{{ s.store_name }}</option>
