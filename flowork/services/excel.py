@@ -74,10 +74,7 @@ def _optimize_dataframe(df, brand_settings, upload_mode):
     if df.empty: return df
 
     required = ['product_number', 'color', 'size']
-    if upload_mode == 'db':
-        pass
-    else:
-        df = df.dropna(subset=required)
+    df = df.dropna(subset=required)
     
     str_cols = ['product_number', 'product_name', 'color', 'size', 'item_category']
     for col in str_cols:
@@ -95,18 +92,7 @@ def _optimize_dataframe(df, brand_settings, upload_mode):
         df['sale_price'] = np.where((op > 0) & (sp == 0), op, sp)
         df['original_price'] = np.where((sp > 0) & (op == 0), sp, op)
 
-    if 'barcode' not in df.columns: df['barcode'] = None
-    
-    mask_no_barcode = df['barcode'].isna() | (df['barcode'] == '')
-    if mask_no_barcode.any():
-        df.loc[mask_no_barcode, 'barcode'] = df[mask_no_barcode].apply(
-            lambda row: generate_barcode(row.to_dict(), brand_settings), axis=1
-        )
-
-    df = df.dropna(subset=['barcode'])
-    
     df['product_number_cleaned'] = df['product_number'].apply(clean_string_upper)
-    df['barcode_cleaned'] = df['barcode'].apply(clean_string_upper)
     
     if 'color' in df.columns:
         df['color_cleaned'] = df['color'].apply(clean_string_upper)
@@ -116,6 +102,23 @@ def _optimize_dataframe(df, brand_settings, upload_mode):
     if 'product_name' in df.columns:
         df['product_name_cleaned'] = df['product_name'].apply(clean_string_upper)
         df['product_name_choseong'] = df['product_name'].apply(get_choseong)
+
+    # [수정] 필수 데이터가 정제 후 빈 값이 된 경우 해당 행 삭제 (DB 에러 방지 핵심)
+    # 예: color가 "-" 등이어서 clean_string_upper 후 ""가 된 경우 필터링
+    for col in ['product_number_cleaned', 'color_cleaned', 'size_cleaned']:
+        if col in df.columns:
+            df = df[df[col] != '']
+
+    if 'barcode' not in df.columns: df['barcode'] = None
+    
+    mask_no_barcode = df['barcode'].isna() | (df['barcode'] == '')
+    if mask_no_barcode.any():
+        df.loc[mask_no_barcode, 'barcode'] = df[mask_no_barcode].apply(
+            lambda row: generate_barcode(row.to_dict(), brand_settings), axis=1
+        )
+
+    df = df.dropna(subset=['barcode'])
+    df['barcode_cleaned'] = df['barcode'].apply(clean_string_upper)
     
     if 'is_favorite' not in df.columns:
         df['is_favorite'] = 0
@@ -156,15 +159,10 @@ def verify_stock_excel(file_path, form, upload_mode):
         return {'status': 'error', 'message': f"검증 중 오류: {e}"}
 
 def parse_stock_excel(file_path, form, upload_mode, brand_id, excluded_row_indices=None):
-    """
-    엑셀 파일을 읽어서 정제된 딕셔너리 리스트로 반환합니다.
-    """
     try:
-        # 1. DB 설정 로드
         settings_query = Setting.query.filter_by(brand_id=brand_id).all()
         brand_settings = {s.key: s.value for s in settings_query}
         
-        # 2. [수정] DB에 설정이 없으면 JSON 파일에서 로드 (안전장치)
         if 'SIZE_MAPPING' not in brand_settings or 'CATEGORY_MAPPING_RULE' not in brand_settings:
             try:
                 brand = db.session.get(Brand, brand_id)
@@ -173,10 +171,8 @@ def parse_stock_excel(file_path, form, upload_mode, brand_id, excluded_row_indic
                     if os.path.exists(json_path):
                         with open(json_path, 'r', encoding='utf-8') as f:
                             file_config = json.load(f)
-                            # 파일 설정을 메모리상의 brand_settings에 병합 (DB 저장 X)
                             for k, v in file_config.items():
                                 if k not in brand_settings:
-                                    # dict/list는 JSON 문자열로 변환하여 저장
                                     brand_settings[k] = json.dumps(v, ensure_ascii=False) if isinstance(v, (dict, list)) else str(v)
             except Exception as e:
                 print(f"Config file fallback failed: {e}")
@@ -223,7 +219,6 @@ def parse_stock_excel(file_path, form, upload_mode, brand_id, excluded_row_indic
             df = pd.DataFrame()
             if import_strategy == 'horizontal_matrix' and transform_horizontal_to_vertical:
                 try:
-                    # 이제 brand_settings에 값이 채워져 있으므로 안전하게 로드됨
                     size_conf = json.loads(brand_settings.get('SIZE_MAPPING', '{}'))
                     cat_conf = json.loads(brand_settings.get('CATEGORY_MAPPING_RULE', '{}'))
                     
@@ -247,7 +242,7 @@ def parse_stock_excel(file_path, form, upload_mode, brand_id, excluded_row_indic
         df = _optimize_dataframe(df, brand_settings, upload_mode)
         
         if df.empty: 
-            return None, "유효한 데이터 없음"
+            return None, "유효한 데이터 없음 (필수 정보 누락 등)"
 
         return df.to_dict('records'), None
 

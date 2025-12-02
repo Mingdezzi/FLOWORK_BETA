@@ -23,9 +23,10 @@ def get_choseong(text):
 
 def generate_barcode(row_data, brand_settings=None):
     try:
-        pn = str(row_data.get('product_number', '')).strip()
-        color = str(row_data.get('color', '')).strip()
-        size = str(row_data.get('size', '')).strip()
+        # [수정] get() 결과가 None이면 빈 문자열로 처리 (str(None) -> "None" 방지)
+        pn = str(row_data.get('product_number') or '').strip()
+        color = str(row_data.get('color') or '').strip()
+        size = str(row_data.get('size') or '').strip()
         
         pn_cleaned = pn.replace('-', '')
         size_upper = size.upper()
@@ -62,7 +63,7 @@ def generate_barcode(row_data, brand_settings=None):
         if pn_final and color and size_final: 
             return f"{pn_final}{color}{size_final}".upper()
         else: 
-            print(f"Barcode generation skipped (missing fields): {row_data}")
+            # 필수 정보 부족 시 바코드 생성 안 함
             return None
             
     except Exception as e: 
