@@ -28,7 +28,10 @@ def _get_target_store_id():
 @login_required
 def sales_settings():
     store_id = _get_target_store_id()
-    if not store_id: return jsonify({'status': 'error', 'message': '매장 정보 필요'}), 400
+    
+    # [수정] 매장이 선택되지 않았을 때 400 에러 대신 빈 설정 반환 (Admin 접근 허용)
+    if not store_id: 
+        return jsonify({'status': 'success', 'config': {}})
     
     SETTING_KEY = f'SALES_CONFIG_{store_id}'
     
@@ -79,7 +82,7 @@ def create_sale():
 @login_required
 def search_sales_products():
     store_id = _get_target_store_id()
-    if not store_id: return jsonify({'status': 'error', 'message': '권한 없음'}), 403
+    # [수정] 관리자가 매장을 선택하지 않았더라도 검색은 가능하게 처리 (재고는 0으로 표시)
     
     data = request.json
     query = data.get('query', '').strip()
@@ -113,11 +116,13 @@ def search_sales_products():
         variants = db.session.query(Variant).filter_by(product_id=product.id).all()
         variants.sort(key=lambda v: get_sort_key(v, brand_settings))
         
-        stocks = db.session.query(StoreStock).filter(
-            StoreStock.store_id == store_id,
-            StoreStock.variant_id.in_([v.id for v in variants])
-        ).all()
-        stock_map = {s.variant_id: s.quantity for s in stocks}
+        stock_map = {}
+        if store_id:
+            stocks = db.session.query(StoreStock).filter(
+                StoreStock.store_id == store_id,
+                StoreStock.variant_id.in_([v.id for v in variants])
+            ).all()
+            stock_map = {s.variant_id: s.quantity for s in stocks}
         
         result_vars = []
         for v in variants:
@@ -160,14 +165,14 @@ def search_sales_products():
             
             stat_qty = 0
             
-            if mode == 'sales':
+            if mode == 'sales' and store_id:
                 stocks = db.session.query(func.sum(StoreStock.quantity)).filter(
                     StoreStock.store_id == store_id,
                     StoreStock.variant_id.in_(v_data['ids'])
                 ).scalar()
                 stat_qty = stocks if stocks else 0
                 
-            elif mode == 'refund':
+            elif mode == 'refund' and store_id:
                 start_dt = data.get('start_date')
                 end_dt = data.get('end_date')
                 if start_dt and end_dt:
