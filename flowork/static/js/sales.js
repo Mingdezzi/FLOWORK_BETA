@@ -501,8 +501,9 @@ if (!window.SalesApp) {
                 }
 
                 const tr = document.createElement('tr');
+                
                 tr.innerHTML = `
-                    <td class="d-none d-md-table-cell align-middle text-muted small p-1">${idx + 1}</td>
+                    <td class="align-middle text-muted small p-1">${idx + 1}</td>
                     
                     <td class="text-start align-middle p-1">
                         <div class="fw-bold text-truncate" style="width:100%; max-width:120px; font-size:0.85rem;">${item.product_name}</div>
@@ -527,9 +528,9 @@ if (!window.SalesApp) {
                     </td>
                     
                     <td class="align-middle p-1">
-                        <div class="input-group input-group-sm flex-nowrap justify-content-center m-0">
+                        <div class="input-group input-group-sm flex-nowrap justify-content-center m-0" style="width: 100%;">
                             <button class="btn btn-outline-secondary btn-qty-dec p-0" type="button" data-idx="${idx}" style="width:24px; height:28px;"><i class="bi bi-dash"></i></button>
-                            <input type="text" class="form-control text-center p-0 fw-bold bg-white m-0" value="${item.quantity}" readonly style="width:30px; height:28px; font-size:0.9rem; flex:none;">
+                            <input type="text" class="form-control text-center p-0 fw-bold bg-white m-0" value="${item.quantity}" readonly style="flex:1; min-width:20px; height:28px; font-size:0.9rem;">
                             <button class="btn btn-outline-secondary btn-qty-inc p-0" type="button" data-idx="${idx}" style="width:24px; height:28px;"><i class="bi bi-plus"></i></button>
                         </div>
                     </td>
@@ -541,7 +542,7 @@ if (!window.SalesApp) {
                     
                     <td class="align-middle p-1">
                         <button type="button" class="btn btn-link text-danger p-0 btn-del" data-idx="${idx}">
-                            <i class="bi bi-trash-fill" style="font-size: 1.1rem;"></i>
+                            <i class="bi bi-trash-fill fs-5"></i>
                         </button>
                     </td>
                 `;
