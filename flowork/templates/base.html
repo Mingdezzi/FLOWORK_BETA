@@ -130,13 +130,19 @@
                     if (this.isInitRun) return;
                     this.isInitRun = true;
 
-                    const initialUrl = this.normalizeUrl(window.location.pathname + window.location.search);
+                    // [수정] 초기 URL 정규화
+                    const rawInitialUrl = window.location.pathname + window.location.search;
+                    const initialUrl = this.normalizeUrl(rawInitialUrl);
                     const initialContentEl = document.getElementById('initial-page-content');
                     
                     this.loadTabsFromStorage();
 
+                    // 현재 URL에 해당하는 탭 찾기 (경로 기준 매칭)
+                    // 예: /sales?page=2 와 /sales?page=1 은 같은 탭으로 취급할지 결정해야 함.
+                    // 여기서는 완전 일치 또는 경로 일치로 찾습니다.
                     let currentTab = this.tabs.find(t => this.normalizeUrl(t.url) === initialUrl);
 
+                    // 대시보드 예외 처리
                     if (!currentTab && (initialUrl === '/' || initialUrl === '/home')) {
                         currentTab = this.tabs.find(t => t.url === '/' || t.url === '/home');
                     }
@@ -157,7 +163,8 @@
                         currentTab = { id: tabId, url: initialUrl, title: initialTitle, isClosable: isClosable };
                         this.tabs.push(currentTab);
                     } else {
-                        currentTab.url = initialUrl; // Update URL to exact match
+                        // 기존 탭이 있다면 현재 URL로 업데이트 (쿼리스트링 변경 등 반영)
+                        currentTab.url = initialUrl;
                     }
 
                     if (initialContentEl) {
@@ -167,15 +174,27 @@
                     this.saveTabsToStorage();
                     this.renderTabsUI();
                     
-                    // 초기 로드 시에는 fetchPage 없이 활성화만 수행
-                    this.activateTab(currentTab.id, false, false); 
+                    this.activateTab(currentTab.id, false, false);
                     this.bindEvents();
                 },
 
+                // [수정] URL 정규화 로직 개선 (루트 경로 보존)
                 normalizeUrl(url) {
-                    // 쿼리스트링 순서 등 미세한 차이 무시하고 path 비교 위주, 혹은 끝의 / 제거
-                    if(!url) return '';
-                    return url.replace(/\/$/, ""); 
+                    if (!url) return '/';
+                    // 1. 루트 경로 처리
+                    if (url === '/' || url === '/home') return '/';
+                    
+                    // 2. 끝의 슬래시 제거 (쿼리스트링이 없는 경우만)
+                    if (url.includes('?')) return url; // 쿼리스트링 있으면 그대로
+                    if (url.length > 1 && url.endsWith('/')) {
+                        return url.slice(0, -1);
+                    }
+                    return url;
+                },
+
+                // [추가] 탭 식별을 위한 키 생성 (경로만 사용)
+                getTabKey(url) {
+                    return url.split('?')[0]; // 쿼리스트링 제외한 경로를 탭 식별자로 사용
                 },
 
                 bindEvents() {
@@ -197,14 +216,8 @@
                     window.addEventListener('popstate', () => {
                         this.isPopStateProcessing = true;
                         const path = this.normalizeUrl(window.location.pathname + window.location.search);
-                        const existingTab = this.tabs.find(t => this.normalizeUrl(t.url) === path);
-                        
-                        if (existingTab) {
-                            this.activateTab(existingTab.id, false);
-                        } else {
-                            // 히스토리엔 있는데 탭 목록에 없으면 새로 염 (제목은 임시)
-                            this.open(path, 'Loading...', false);
-                        }
+                        // 히스토리 이동 시, 해당 URL을 가진 탭을 찾거나 새로 염
+                        this.open(path, 'Loading...', false);
                         this.isPopStateProcessing = false;
                     });
 
@@ -232,13 +245,12 @@
 
                 saveTabsToStorage() {
                     const uniqueTabs = [];
-                    const seenUrls = new Set();
+                    const seenKeys = new Set();
                     
-                    // 역순으로 순회하여 최신 탭 유지 (또는 정순) - 여기선 정순 유지하되 중복 제거
                     this.tabs.forEach(t => {
-                        const normUrl = this.normalizeUrl(t.url);
-                        if (!seenUrls.has(normUrl)) {
-                            seenUrls.add(normUrl);
+                        const key = this.getTabKey(t.url);
+                        if (!seenKeys.has(key)) {
+                            seenKeys.add(key);
                             uniqueTabs.push({
                                 id: t.id,
                                 url: t.url,
@@ -286,19 +298,26 @@
                 open(url, title, pushState = true) {
                     if (!url || url === '#') return;
                     
-                    // [중요] 이전 요청 취소
+                    // 이전 요청 취소
                     if (this.abortController) {
                         this.abortController.abort();
                         this.abortController = null;
-                        // 로딩바 초기화
                         this.loader.style.width = '0';
                     }
 
                     const normalizedUrl = this.normalizeUrl(url);
-                    const existingTab = this.tabs.find(t => this.normalizeUrl(t.url) === normalizedUrl);
+                    const targetKey = this.getTabKey(normalizedUrl);
+                    
+                    // 기존 탭 찾기 (경로 기준)
+                    const existingTab = this.tabs.find(t => this.getTabKey(t.url) === targetKey);
                     
                     if (existingTab) {
-                        // 이미 탭이 있으면 그 탭을 활성화하고 끝냄 (중복 fetch 방지)
+                        // 탭은 있지만 URL이 다른 경우 (예: 페이징, 검색어 변경) -> 콘텐츠 업데이트
+                        if (existingTab.url !== normalizedUrl) {
+                            existingTab.url = normalizedUrl;
+                            this.fetchPage(normalizedUrl, title, existingTab.isClosable, existingTab.id);
+                        } 
+                        
                         this.activateTab(existingTab.id, pushState);
                         this.closeMobileMenu();
                         return;
@@ -309,12 +328,12 @@
                     }
 
                     let isClosable = true;
-                    if (normalizedUrl === '' || normalizedUrl === '/' || normalizedUrl === '/home') {
+                    if (normalizedUrl === '/' || normalizedUrl === '/home') {
                         title = "대시보드";
                         isClosable = false;
                     }
 
-                    this.fetchPage(url, title, isClosable);
+                    this.fetchPage(normalizedUrl, title, isClosable, null);
                     this.closeMobileMenu();
                 },
 
@@ -326,7 +345,7 @@
                     }
                 },
 
-                async fetchPage(url, title, isClosable) {
+                async fetchPage(url, title, isClosable, existingTabId) {
                     this.abortController = new AbortController();
                     const signal = this.abortController.signal;
 
@@ -342,7 +361,7 @@
 
                         const html = await res.text();
                         
-                        if (signal.aborted) return; // 이미 취소된 요청이면 무시
+                        if (signal.aborted) return;
 
                         this.loader.style.width = '70%';
 
@@ -360,9 +379,18 @@
                             else contentHtml = doc.body.innerHTML;
                         }
 
-                        // [중요] 탭 생성 직전에 한 번 더 체크 (그 사이 닫았을 수 있음)
                         if (!signal.aborted) {
-                            this.createNewTab(url, title, contentHtml, isClosable);
+                            if (existingTabId) {
+                                // 기존 탭 내용 업데이트
+                                const contentEl = document.getElementById(`page-${existingTabId}`);
+                                if (contentEl) {
+                                    contentEl.innerHTML = `<div class="unique-content-area">${contentHtml}</div>`;
+                                }
+                                this.saveTabsToStorage(); // URL 업데이트 저장
+                            } else {
+                                // 새 탭 생성
+                                this.createNewTab(url, title, contentHtml, isClosable);
+                            }
                             
                             const scriptContainer = doc.getElementById('page-scripts');
                             if (scriptContainer) {
@@ -371,10 +399,7 @@
                         }
 
                     } catch (error) {
-                        if (error.name === 'AbortError') {
-                            console.log('Fetch aborted:', url);
-                            return; 
-                        }
+                        if (error.name === 'AbortError') return;
                         console.error("Page Load Error:", error);
                         if(window.Flowork) Flowork.toast('페이지 로드 실패', 'danger');
                     } finally {
@@ -387,18 +412,6 @@
                 },
 
                 createNewTab(url, title, contentHtml, isClosable) {
-                    // 중복 체크
-                    const normalizedUrl = this.normalizeUrl(url);
-                    const existingTab = this.tabs.find(t => this.normalizeUrl(t.url) === normalizedUrl);
-                    
-                    if (existingTab) {
-                        this.activateTab(existingTab.id);
-                        // 내용 업데이트 (선택 사항, 여기선 리로드 효과를 위해 업데이트)
-                        const contentEl = document.getElementById(`page-${existingTab.id}`);
-                        if(contentEl) contentEl.innerHTML = `<div class="unique-content-area">${contentHtml}</div>`;
-                        return;
-                    }
-
                     const id = this.generateId();
                     this.tabs.push({ id, url, title, isClosable });
                     this.saveTabsToStorage();
@@ -453,7 +466,7 @@
                             // 빈 페이지라면 fetch 시도 (새로고침 후 복원 시 등)
                             if (fetchIfNeeded && el.innerHTML.trim() === '') {
                                 const tab = this.tabs.find(t => t.id === id);
-                                if(tab) this.fetchPage(tab.url, tab.title, tab.isClosable);
+                                if(tab) this.fetchPage(tab.url, tab.title, tab.isClosable, id);
                             }
                         } else {
                             el.style.display = 'none';
@@ -510,21 +523,22 @@
                             const nextTab = this.tabs[Math.max(0, idx - 1)];
                             this.activateTab(nextTab.id);
                         } else {
-                            // 탭이 하나도 없으면 홈으로 (보통 대시보드가 안 닫히므로 여기 올 일은 드뭄)
                             window.location.href = '/'; 
                         }
                     }
                 },
 
                 updateNavHighlight(url) {
-                    // 쿼리스트링 제외하고 비교
                     const cleanUrl = url.split('?')[0];
                     document.querySelectorAll('.list-group-item, .nav-link').forEach(link => {
                         const href = link.getAttribute('href');
                         if (!href) return;
                         
                         const cleanHref = href.split('?')[0];
-                        if (cleanHref === cleanUrl || (cleanHref !== '/' && cleanUrl.startsWith(cleanHref))) {
+                        // 홈(/)과 서브메뉴(/sales 등) 구분
+                        if (cleanUrl === '/' && cleanHref === '/') {
+                             link.classList.add('active');
+                        } else if (cleanHref !== '/' && cleanUrl.startsWith(cleanHref)) {
                             link.classList.add('active');
                         } else {
                             link.classList.remove('active');
@@ -534,7 +548,7 @@
 
                 executeScripts(container) {
                     if (window.CurrentApp && typeof window.CurrentApp.destroy === 'function') {
-                        // 이전 앱 인스턴스 정리 로직이 필요하다면 여기서 호출
+                        // 이전 앱 인스턴스 정리 필요 시 호출
                     }
 
                     const scripts = container.querySelectorAll('script');
@@ -546,7 +560,6 @@
                         newScript.appendChild(document.createTextNode(oldScript.innerHTML));
                         document.body.appendChild(newScript);
                         
-                        // 외부 스크립트가 아닌 인라인 스크립트는 실행 후 정리
                         if (!newScript.src) {
                             setTimeout(() => newScript.remove(), 1000); 
                         }
