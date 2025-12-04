@@ -89,15 +89,7 @@
             <div class="cart-table-wrapper custom-scrollbar border rounded bg-white shadow-sm mb-2 flex-grow-1" style="min-height: 0; overflow-y: auto;">
                 <table class="table table-hover table-striped mb-0 text-center align-middle sales-table" style="font-size: 0.8rem; table-layout: fixed; width: 100%;">
                     <colgroup>
-                        <col class="d-none d-md-table-column" style="width: 2%;">
-                        <col style="width: 50%;">
-                        <col style="width: 10%;">
-                        <col style="width: 10%;">
-                        <col style="width: 10%;">
-                        <col style="width: 7.5%;">
-                        <col style="width: 7.5%;">
-                        <col style="width: 3%;">
-                    </colgroup>
+                        <col class="d-none d-md-table-column" style="width: 2%;"> <col style="width: 50%;"> <col style="width: 10%;"> <col style="width: 10%;"> <col style="width: 10%;"> <col style="width: 7.5%;"> <col style="width: 7.5%;"> <col style="width: 3%;">  </colgroup>
                     <thead class="table-dark sticky-top" style="z-index: 10;">
                         <tr>
                             <th class="d-none d-md-table-cell">#</th>
@@ -163,5 +155,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/sales.js') }}?v={{ range(1, 10000) | random }}" defer></script>
+<script src="{{ url_for('static', filename='js/sales.js') }}?v={{ range(1, 9999) | random }}" defer></script>
 {% endblock %}
