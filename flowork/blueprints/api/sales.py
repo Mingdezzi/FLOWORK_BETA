@@ -118,7 +118,8 @@ def search_sales_products():
                 'size': matched_variant.size,
                 'original_price': matched_variant.original_price,
                 'sale_price': matched_variant.sale_price,
-                'stock': stock_qty
+                'stock': stock_qty,
+                'hq_stock': matched_variant.hq_quantity or 0
             }
         })
 
@@ -163,7 +164,8 @@ def search_sales_products():
                 'size': v.size,
                 'original_price': v.original_price,
                 'sale_price': v.sale_price,
-                'stock': stock_map.get(v.id, 0)
+                'stock': stock_map.get(v.id, 0),
+                'hq_stock': v.hq_quantity or 0
             })
         return jsonify({'status': 'success', 'variants': result_vars})
 

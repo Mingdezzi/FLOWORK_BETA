@@ -35,7 +35,6 @@ html, body {
         padding-bottom: 60px; 
     }
     
-    /* [수정] 모바일에서 탭 바 숨김 */
     .chrome-tabs-shell {
         display: none !important;
     }
@@ -238,7 +237,6 @@ html, body {
     transition: width 0.2s;
 }
 
-/* [추가] 전체 화면 로딩 오버레이 스타일 */
 #global-loading-overlay {
     position: fixed;
     top: 0;
@@ -273,8 +271,8 @@ html, body {
 }
 
 .sales-container {
-    height: 100%;
-    overflow: hidden;
+    height: 100% !important;
+    overflow: hidden !important;
     display: flex;
     flex-direction: column;
 }
@@ -284,15 +282,19 @@ html, body {
     overflow: hidden;
 }
 
+.mobile-sales-tabs {
+    flex-shrink: 0;
+}
+
 .sales-panel {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    height: 100% !important;
     overflow: hidden;
 }
 
 .left-table-wrapper, .cart-table-wrapper {
-    flex-grow: 1;
+    flex: 1 1 auto;
     overflow-y: auto;
     border: 1px solid #dee2e6;
     border-radius: 4px;
@@ -307,7 +309,7 @@ html, body {
     
     .sales-panel {
         display: flex !important;
-        height: 100%;
+        height: 100% !important;
     }
     
     #sales-left-panel, #sales-right-panel {
@@ -326,7 +328,7 @@ html, body {
     }
     .sales-panel.active {
         display: flex !important;
-        height: calc(100% - 50px);
+        height: 100% !important;
     }
     .mobile-sales-tabs {
         display: flex !important;
@@ -389,7 +391,6 @@ body.edit-mode #add-variant-row { display: table-row; }
 .sticky-col { position: sticky; background-color: #fff !important; z-index: 2; }
 .sticky-col.second-col { left: 80px; z-index: 2; border-right: 1px solid #dee2e6; }
 
-/* [추가] 모달 내 숫자 키패드 스타일 */
 .numpad-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -398,4 +399,19 @@ body.edit-mode #add-variant-row { display: table-row; }
 .numpad-grid .btn {
     height: 60px;
     font-size: 1.5rem;
+}
+
+.table td {
+    white-space: normal !important;
+    word-break: break-all;
+    vertical-align: middle;
+}
+
+.btn-qty-inc, .btn-qty-dec {
+    width: 30px;
+    padding: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
 }

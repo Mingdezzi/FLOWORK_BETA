@@ -17,10 +17,8 @@ if (!window.SalesApp) {
             this.refundSaleId = null;
             this.config = { amount_discounts: [] };
             
-            // 키패드 관련 상태
             this.activeInput = null;
             
-            // 스와이프 관련 상태
             this.touchStartX = 0;
             this.touchStartY = 0;
 
@@ -64,7 +62,6 @@ if (!window.SalesApp) {
                 recordsModalEl: parent.querySelector('#records-modal'),
                 storeSelect: c.querySelector('#admin-store-select'),
                 
-                // 키패드 모달 요소
                 numpadModalEl: parent.querySelector('#numpad-modal'),
                 numpadDisplay: parent.querySelector('#numpad-display'),
                 numpadKeys: parent.querySelectorAll('.num-key'),
@@ -88,7 +85,6 @@ if (!window.SalesApp) {
                 }, { signal });
             }
             
-            // 키패드 모달 초기화
             if (this.dom.numpadModalEl) {
                 this.numpadModal = new bootstrap.Modal(this.dom.numpadModalEl);
                 this.dom.numpadKeys.forEach(btn => {
@@ -99,7 +95,6 @@ if (!window.SalesApp) {
                 }
             }
 
-            // 스와이프 이벤트 등록
             this.container.addEventListener('touchstart', (e) => this.handleTouchStart(e), { signal, passive: true });
             this.container.addEventListener('touchend', (e) => this.handleTouchEnd(e), { signal, passive: true });
 
@@ -168,14 +163,13 @@ if (!window.SalesApp) {
             console.log('SalesApp destroyed');
         }
 
-        // --- 스와이프 제스처 핸들러 ---
         handleTouchStart(e) {
             this.touchStartX = e.changedTouches[0].screenX;
             this.touchStartY = e.changedTouches[0].screenY;
         }
 
         handleTouchEnd(e) {
-            if (window.innerWidth >= 992) return; // PC 화면에서는 무시
+            if (window.innerWidth >= 992) return;
 
             const touchEndX = e.changedTouches[0].screenX;
             const touchEndY = e.changedTouches[0].screenY;
@@ -183,19 +177,15 @@ if (!window.SalesApp) {
             const diffX = touchEndX - this.touchStartX;
             const diffY = touchEndY - this.touchStartY;
 
-            // X축 이동이 Y축 이동보다 크고, 일정 거리 이상일 때만 스와이프 인정
             if (Math.abs(diffX) > 50 && Math.abs(diffY) < 30) {
                 if (diffX > 0) {
-                    // 오른쪽으로 스와이프 -> 왼쪽 탭(상품검색) 보이기
                     this.switchMobileTab('sales-left');
                 } else {
-                    // 왼쪽으로 스와이프 -> 오른쪽 탭(장바구니) 보이기
                     this.switchMobileTab('sales-right');
                 }
             }
         }
 
-        // --- 키패드 로직 ---
         openKeypad(inputElement) {
             this.activeInput = inputElement;
             this.dom.numpadDisplay.value = inputElement.value || '0';
@@ -220,7 +210,6 @@ if (!window.SalesApp) {
             if (this.activeInput) {
                 const newVal = this.dom.numpadDisplay.value;
                 this.activeInput.value = newVal;
-                // change 이벤트 트리거하여 장바구니 업데이트
                 const event = new Event('change');
                 this.activeInput.dispatchEvent(event);
             }
@@ -321,7 +310,8 @@ if (!window.SalesApp) {
                         sale_price: item.sale_price,
                         discount_amount: 0,
                         quantity: 1,
-                        stock: item.stock
+                        stock: item.stock,
+                        hq_stock: item.hq_stock
                     });
                     this.dom.searchInput.value = '';
                     this.dom.searchInput.focus();
@@ -379,7 +369,10 @@ if (!window.SalesApp) {
                     tr.innerHTML = `
                         <td>${v.color}</td>
                         <td><b>${v.size}</b></td>
-                        <td class="${v.stock <= 0 ? 'text-danger' : 'text-primary'} fw-bold">${v.stock}</td>
+                        <td>
+                            <div class="${v.stock <= 0 ? 'text-danger' : 'text-primary'} fw-bold">${v.stock}</div>
+                            <div class="small text-muted" style="font-size:0.7rem;">HQ:${v.hq_stock}</div>
+                        </td>
                         <td>${window.Flowork.fmtNum(v.sale_price)}</td>
                         <td><button class="btn btn-sm btn-primary btn-add py-0">추가</button></td>
                     `;
@@ -456,7 +449,9 @@ if (!window.SalesApp) {
                         original_price: i.original_price || i.price,
                         sale_price: i.price,
                         discount_amount: i.discount_amount,
-                        quantity: i.quantity
+                        quantity: i.quantity,
+                        stock: '-', 
+                        hq_stock: '-'
                     }));
                     this.renderCart();
                 }
@@ -476,7 +471,9 @@ if (!window.SalesApp) {
                     original_price: item.original_price,
                     sale_price: item.sale_price,
                     discount_amount: 0,
-                    quantity: 1
+                    quantity: 1,
+                    stock: item.stock || 0,
+                    hq_stock: item.hq_stock || 0
                 });
             }
             this.renderCart();
@@ -498,19 +495,54 @@ if (!window.SalesApp) {
                 totalQty += item.quantity;
                 totalAmt += sub;
 
+                let discountRate = 0;
+                if (org > 0) {
+                    discountRate = Math.round((1 - (sale / org)) * 100);
+                }
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${idx + 1}</td>
-                    <td class="text-start">
-                        <div class="fw-bold text-truncate" style="max-width:120px;">${item.product_name}</div>
-                        <div class="small text-muted">${item.product_number}</div>
+                    <td class="align-middle text-muted small">${idx + 1}</td>
+                    
+                    <td class="text-start align-middle">
+                        <div class="fw-bold text-truncate" style="max-width:120px; font-size:0.95rem;">${item.product_name}</div>
+                        <div class="small text-muted" style="font-size:0.75rem;">${item.product_number}</div>
                     </td>
-                    <td>${item.color}/${item.size}</td>
-                    <td class="text-end small">${window.Flowork.fmtNum(sale)}</td>
-                    <td><input type="tel" class="cart-input disc-in" value="${item.discount_amount}" data-idx="${idx}" readonly></td>
-                    <td><input type="tel" class="cart-input qty-in" value="${item.quantity}" data-idx="${idx}" readonly></td>
-                    <td>
-                        <button type="button" class="btn btn-outline-danger btn-sm py-2 btn-del" style="width: 50px; font-weight:bold;" data-idx="${idx}">삭제</button>
+                    
+                    <td class="align-middle">
+                        <div class="fw-bold text-dark">${item.size}</div>
+                        <div class="small text-muted">${item.color}</div>
+                    </td>
+                    
+                    <td class="align-middle text-end">
+                        <div class="fw-bold text-dark">${window.Flowork.fmtNum(sale)}</div>
+                        ${org > sale ? `<div class="small text-decoration-line-through text-muted" style="font-size:0.75rem;">${window.Flowork.fmtNum(org)}</div>` : ''}
+                    </td>
+                    
+                    <td class="align-middle">
+                        <input type="tel" class="form-control form-control-sm text-center cart-input disc-in px-0" 
+                               value="${item.discount_amount}" data-idx="${idx}" readonly 
+                               style="width: 50px; font-weight:bold; color:#eb6864; background:#fff;">
+                        ${discountRate > 0 ? `<div class="small text-danger fw-bold" style="font-size:0.7rem;">-${discountRate}%</div>` : ''}
+                    </td>
+                    
+                    <td class="align-middle">
+                        <div class="input-group input-group-sm flex-nowrap" style="width: 100px; margin:0 auto;">
+                            <button class="btn btn-outline-secondary px-2 btn-qty-dec" type="button" data-idx="${idx}"><i class="bi bi-dash"></i></button>
+                            <input type="text" class="form-control text-center px-0 fw-bold bg-white" value="${item.quantity}" readonly>
+                            <button class="btn btn-outline-secondary px-2 btn-qty-inc" type="button" data-idx="${idx}"><i class="bi bi-plus"></i></button>
+                        </div>
+                    </td>
+
+                    <td class="align-middle">
+                        <div class="text-primary fw-bold">${item.stock}</div>
+                        <div class="text-muted small" style="font-size:0.75rem;">HQ:${item.hq_stock}</div>
+                    </td>
+                    
+                    <td class="align-middle">
+                        <button type="button" class="btn btn-link text-danger p-0 btn-del" data-idx="${idx}">
+                            <i class="bi bi-x-circle-fill fs-5"></i>
+                        </button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -521,27 +553,45 @@ if (!window.SalesApp) {
             
             if (this.dom.mobileCartBadge) this.dom.mobileCartBadge.textContent = totalQty;
 
-            // [수정] input 클릭 시 키패드 모달 오픈하도록 변경
-            tbody.querySelectorAll('.qty-in, .disc-in').forEach(el => {
+            this.bindCartEvents(tbody);
+        }
+
+        bindCartEvents(tbody) {
+            tbody.querySelectorAll('.btn-qty-inc').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const idx = e.currentTarget.dataset.idx;
+                    this.cart[idx].quantity++;
+                    this.renderCart();
+                };
+            });
+            tbody.querySelectorAll('.btn-qty-dec').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const idx = e.currentTarget.dataset.idx;
+                    if (this.cart[idx].quantity > 1) {
+                        this.cart[idx].quantity--;
+                        this.renderCart();
+                    }
+                };
+            });
+
+            tbody.querySelectorAll('.disc-in').forEach(el => {
                 el.onclick = (e) => {
                     this.openKeypad(e.target);
                 };
-                // change 이벤트 수신하여 데이터 업데이트 (키패드 확인 시 발생)
                 el.onchange = (e) => {
                     const idx = e.target.dataset.idx;
                     const val = parseInt(e.target.value);
-                    if (e.target.classList.contains('qty-in')) {
-                        if (val > 0) this.cart[idx].quantity = val;
-                    } else {
-                        if (val >= 0) this.cart[idx].discount_amount = val;
-                    }
+                    if (val >= 0) this.cart[idx].discount_amount = val;
                     this.renderCart();
                 };
             });
 
             tbody.querySelectorAll('.btn-del').forEach(el => {
                 el.onclick = (e) => {
-                    this.cart.splice(e.target.dataset.idx, 1);
+                    e.stopPropagation();
+                    this.cart.splice(e.currentTarget.dataset.idx, 1);
                     this.renderCart();
                 };
             });

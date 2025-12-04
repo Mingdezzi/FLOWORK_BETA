@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="mobile-sales-tabs btn-group w-100 mb-2" role="group">
+<div class="mobile-sales-tabs btn-group w-100 mb-2 flex-shrink-0" role="group">
     <button type="button" class="btn btn-outline-secondary mobile-tab-btn active" data-target="sales-left">
         <i class="bi bi-search me-1"></i>상품검색
     </button>
@@ -10,7 +10,7 @@
     </button>
 </div>
 
-<div class="sales-container" 
+<div class="sales-container h-100 d-flex flex-column" style="overflow: hidden;"
      data-target-store-id="{{ target_store_id | default('', true) }}"
      data-api-urls='{
         "searchSalesProducts": "{{ url_for("api.search_sales_products") }}",
@@ -21,8 +21,8 @@
         "salesSettings": "{{ url_for("api.sales_settings") }}"
      }'>
      
-    <div class="row g-3 h-100">
-        <div class="col-lg-5 col-md-5 d-flex flex-column sales-panel active" id="sales-left-panel">
+    <div class="row g-3 h-100 m-0">
+        <div class="col-lg-5 col-md-5 d-flex flex-column sales-panel active h-100 p-0 pe-lg-2" id="sales-left-panel">
             {% if not current_user.store_id %}
             <div class="mb-2 flex-shrink-0">
                 <select class="form-select form-select-sm border-primary fw-bold" id="admin-store-select" onchange="window.location.href='{{ url_for('ui.sales_register') }}?store_id=' + this.value">
@@ -58,13 +58,13 @@
                 <button class="btn btn-dark px-4" id="btn-search">검색</button>
             </div>
 
-            <div class="left-table-wrapper custom-scrollbar border rounded bg-white shadow-sm">
-                <table class="table table-hover mb-0" style="font-size: 0.9rem;">
+            <div class="left-table-wrapper custom-scrollbar border rounded bg-white shadow-sm flex-grow-1" style="min-height: 0;">
+                <table class="table table-hover mb-0 sticky-header" style="font-size: 0.9rem;">
                     <thead class="table-light sticky-top">
                         <tr class="text-center">
-                            <th style="width: 30%">품번</th>
+                            <th style="width: 25%">품번</th>
                             <th>품명</th>
-                            <th style="width: 15%">옵션</th>
+                            <th style="width: 15%">컬러</th>
                             <th style="width: 15%">재고</th>
                         </tr>
                     </thead>
@@ -75,7 +75,7 @@
             </div>
         </div>
 
-        <div class="col-lg-7 col-md-7 d-flex flex-column sales-panel" id="sales-right-panel">
+        <div class="col-lg-7 col-md-7 d-flex flex-column sales-panel h-100 p-0 ps-lg-2" id="sales-right-panel">
             <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-white rounded shadow-sm border flex-shrink-0">
                 <div class="fw-bold text-dark d-flex align-items-center">
                     <i class="bi bi-basket2-fill me-2 fs-5 text-primary"></i>판매 리스트
@@ -86,17 +86,18 @@
                 </div>
             </div>
 
-            <div class="cart-table-wrapper custom-scrollbar border rounded bg-white shadow-sm mb-2">
-                <table class="table table-hover table-striped mb-0 text-center align-middle" style="font-size: 0.9rem;">
-                    <thead class="table-dark sticky-top">
+            <div class="cart-table-wrapper custom-scrollbar border rounded bg-white shadow-sm mb-2 flex-grow-1" style="min-height: 0; overflow-y: auto;">
+                <table class="table table-hover table-striped mb-0 text-center align-middle" style="font-size: 0.85rem;">
+                    <thead class="table-dark sticky-top" style="z-index: 10;">
                         <tr>
-                            <th width="40">#</th>
+                            <th style="width: 30px;">#</th>
                             <th>상품정보</th>
-                            <th>옵션</th>
-                            <th class="text-end">판매가</th>
-                            <th width="80">할인</th>
-                            <th width="70">수량</th>
-                            <th width="60">삭제</th>
+                            <th style="width: 60px;">옵션<br><span style="font-size:0.7em; font-weight:normal;">(사이즈/컬러)</span></th>
+                            <th style="width: 70px;">단가<br><span style="font-size:0.7em; font-weight:normal;">(판매/최초)</span></th>
+                            <th style="width: 60px;">할인</th>
+                            <th style="width: 110px;">수량</th>
+                            <th style="width: 50px;">재고<br><span style="font-size:0.7em; font-weight:normal;">(매장/본사)</span></th>
+                            <th style="width: 40px;"><i class="bi bi-trash"></i></th>
                         </tr>
                     </thead>
                     <tbody id="cart-tbody"></tbody>
@@ -104,27 +105,35 @@
             </div>
 
             <div class="card bg-white border shadow-sm flex-shrink-0 mt-auto">
-                <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-end mb-3 border-bottom pb-3">
-                        <div class="fs-5 text-muted">총 수량: <b id="total-qty" class="text-dark">0</b></div>
-                        <div class="text-end">
-                            <div class="small text-muted mb-1">결제 예정 금액</div>
-                            <div class="display-6 fw-bold text-primary lh-1"><span id="total-amount">0</span><span class="fs-4 ms-1">원</span></div>
+                <div class="card-body p-2">
+                    
+                    <div id="sales-actions-top" class="d-flex gap-2 mb-2 justify-content-end">
+                        <button class="btn btn-sm btn-outline-warning fw-bold px-3" id="btn-hold-sale">
+                            <i class="bi bi-pause-circle me-1"></i>보류
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary fw-bold px-3" id="btn-apply-discount">
+                            <i class="bi bi-tag me-1"></i>규칙 할인
+                        </button>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-end mb-2 border-top pt-2">
+                        <div class="fs-6 text-muted ms-2">총 수량: <b id="total-qty" class="text-dark fs-5">0</b></div>
+                        <div class="text-end me-2">
+                            <span class="small text-muted me-2">결제금액</span>
+                            <span class="display-6 fw-bold text-primary lh-1" style="font-size: 1.8rem;">
+                                <span id="total-amount">0</span><span class="fs-6 ms-1 text-dark">원</span>
+                            </span>
                         </div>
                     </div>
 
-                    <div id="sales-actions">
-                        <div class="row g-2 mb-2">
-                            <div class="col-6"><button class="btn btn-warning w-100 py-2" id="btn-hold-sale"><i class="bi bi-pause-circle me-1"></i>보류</button></div>
-                            <div class="col-6"><button class="btn btn-outline-primary w-100 py-2" id="btn-apply-discount"><i class="bi bi-tag me-1"></i>할인</button></div>
-                        </div>
-                        <button class="btn btn-primary w-100 py-3 fs-5 fw-bold" id="btn-submit-sale">
+                    <div id="sales-actions-bottom">
+                        <button class="btn btn-primary w-100 py-3 fs-5 fw-bold shadow-sm" id="btn-submit-sale">
                             <i class="bi bi-credit-card-2-back me-2"></i>결제 완료
                         </button>
                     </div>
                     
                     <div id="refund-actions" style="display: none;">
-                        <div class="alert alert-danger py-2 px-3 mb-3 d-flex align-items-center">
+                        <div class="alert alert-danger py-2 px-3 mb-2 d-flex align-items-center">
                             <i class="bi bi-info-circle-fill me-2 fs-5"></i>
                             <div class="text-truncate flex-grow-1 fw-bold" id="refund-target-info">선택된 영수증 없음</div>
                         </div>
