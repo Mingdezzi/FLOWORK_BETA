@@ -89,17 +89,25 @@
             <div class="cart-table-wrapper custom-scrollbar border rounded bg-white shadow-sm mb-2 flex-grow-1" style="min-height: 0; overflow-y: auto;">
                 <table class="table table-hover table-striped mb-0 text-center align-middle sales-table" style="font-size: 0.8rem; table-layout: fixed; width: 100%;">
                     <colgroup>
-                        <col class="d-none d-md-table-column" style="width: 2%;"> <col style="width: 50%;"> <col style="width: 10%;"> <col style="width: 10%;"> <col style="width: 10%;"> <col style="width: 7.5%;"> <col style="width: 7.5%;"> <col style="width: 3%;">  </colgroup>
+                        <col class="d-none d-md-table-column" style="width: 2%;">
+                        <col style="width: 50%;">
+                        <col style="width: 10%;">
+                        <col style="width: 10%;">
+                        <col style="width: 10%;">
+                        <col style="width: 7.5%;">
+                        <col style="width: 7.5%;">
+                        <col style="width: 3%;">
+                    </colgroup>
                     <thead class="table-dark sticky-top" style="z-index: 10;">
-                        <tr>
-                            <th class="d-none d-md-table-cell">#</th>
-                            <th>상품</th>
-                            <th>옵션</th>
-                            <th>단가</th>
-                            <th>할인</th>
-                            <th>수량</th>
-                            <th>재고</th>
-                            <th><i class="bi bi-trash-fill"></i></th>
+                        <tr class="text-center">
+                            <th class="d-none d-md-table-cell p-1">#</th>
+                            <th class="p-1">상품</th>
+                            <th class="p-1">옵션</th>
+                            <th class="p-1">단가</th>
+                            <th class="p-1">할인</th>
+                            <th class="p-1">수량</th>
+                            <th class="p-1">재고</th>
+                            <th class="p-1"><i class="bi bi-trash-fill"></i></th>
                         </tr>
                     </thead>
                     <tbody id="cart-tbody"></tbody>
@@ -155,5 +163,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/sales.js') }}?v={{ range(1, 9999) | random }}" defer></script>
+<script src="{{ url_for('static', filename='js/sales.js') }}?v={{ range(1, 99999) | random }}" defer></script>
 {% endblock %}

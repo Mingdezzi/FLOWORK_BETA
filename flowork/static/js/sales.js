@@ -515,7 +515,7 @@ if (!window.SalesApp) {
                         <div class="text-muted text-truncate mx-auto" style="font-size:0.65rem; max-width:40px;">${item.color}</div>
                     </td>
                     
-                    <td class="align-middle text-center p-1">
+                    <td class="align-middle p-1 text-center">
                         <div class="fw-bold text-dark" style="font-size:0.8rem;">${window.Flowork.fmtNum(sale)}</div>
                         ${org > sale ? `<div class="text-decoration-line-through text-muted" style="font-size:0.65rem;">${window.Flowork.fmtNum(org)}</div>` : ''}
                     </td>
