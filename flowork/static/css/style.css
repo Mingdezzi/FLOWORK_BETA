@@ -302,26 +302,44 @@ html, body {
     min-height: 0;
 }
 
+/* [수정] 모바일 가로모드(Landscape)를 PC와 동일하게 처리하는 핵심 스타일 */
 @media (min-width: 992px), (orientation: landscape) and (min-width: 576px) {
+    /* 탭 버튼 숨김 */
     .mobile-sales-tabs {
         display: none !important;
     }
     
+    /* 패널 2개 강제 표시 및 높이 고정 */
     .sales-panel {
         display: flex !important;
         height: 100% !important;
     }
     
-    #sales-left-panel, #sales-right-panel {
+    /* 좌우 패널 너비 강제 지정 (Grid 시스템 덮어쓰기) */
+    #sales-left-panel {
         display: flex !important;
+        width: 41.666667% !important; /* col-5 */
+        padding-right: 0.5rem !important;
+    }
+    
+    #sales-right-panel {
+        display: flex !important;
+        width: 58.333333% !important; /* col-7 */
+        padding-left: 0.5rem !important;
     }
     
     .sales-container .row > .col-lg-5,
     .sales-container .row > .col-lg-7 {
         height: 100%;
     }
+
+    /* PC 및 가로모드에서만 보이는 컬럼 */
+    .pc-only-col {
+        display: table-cell !important;
+    }
 }
 
+/* [수정] 모바일 세로모드(Portrait) */
 @media (max-width: 991.98px) and (orientation: portrait) {
     .sales-panel:not(.active) {
         display: none !important;
@@ -333,6 +351,11 @@ html, body {
     .mobile-sales-tabs {
         display: flex !important;
         flex-shrink: 0;
+    }
+    
+    /* 모바일 세로에서는 순번(#) 숨김 */
+    .pc-only-col {
+        display: none;
     }
 }
 
@@ -352,6 +375,7 @@ html, body {
         padding: 0.5rem !important;
     }
     
+    /* 가로모드에서 탭 숨김 (위 미디어 쿼리와 중복되지만 안전장치) */
     .mobile-sales-tabs {
         display: none !important;
     }
@@ -415,4 +439,13 @@ body.edit-mode #add-variant-row { display: table-row; }
 .sales-table td {
     padding: 0.4rem 0.2rem;
     vertical-align: middle;
+}
+
+.btn-qty-inc, .btn-qty-dec {
+    width: 30px;
+    padding: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
 }

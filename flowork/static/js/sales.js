@@ -169,7 +169,8 @@ if (!window.SalesApp) {
         }
 
         handleTouchEnd(e) {
-            if (window.innerWidth >= 992) return;
+            // [수정] 모바일 가로 모드(PC 레이아웃)에서는 스와이프 무시
+            if (window.innerWidth >= 992 || (this.dom.mobileTabs[0] && this.dom.mobileTabs[0].offsetParent === null)) return;
 
             const touchEndX = e.changedTouches[0].screenX;
             const touchEndY = e.changedTouches[0].screenY;
@@ -502,9 +503,9 @@ if (!window.SalesApp) {
 
                 const tr = document.createElement('tr');
                 
-                // [수정] 8개 열 구조, 내용 병합, 너비 최적화 반영
+                // [수정] 열 구성을 8개로 정확히 맞추고 쓰레기통 아이콘 추가
                 tr.innerHTML = `
-                    <td class="d-none d-md-table-cell align-middle text-muted small">${idx + 1}</td>
+                    <td class="pc-only-col align-middle text-muted small">${idx + 1}</td>
                     
                     <td class="text-start align-middle">
                         <div class="fw-bold text-truncate" style="max-width:100px; font-size:0.9rem;">${item.product_name}</div>
@@ -543,7 +544,7 @@ if (!window.SalesApp) {
                     
                     <td class="align-middle">
                         <button type="button" class="btn btn-link text-danger p-0 btn-del" data-idx="${idx}">
-                            <i class="bi bi-trash fs-5"></i>
+                            <i class="bi bi-trash-fill fs-5"></i>
                         </button>
                     </td>
                 `;
